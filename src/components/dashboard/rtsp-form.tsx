@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Video } from 'lucide-react';
+import { Video, MapPin } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 export function RtspForm() {
@@ -48,7 +48,15 @@ export function RtspForm() {
             <Label htmlFor="stream-name">Stream Name</Label>
             <Input
               id="stream-name"
-              placeholder="e.g., CAM-03: North Entrance"
+              placeholder="e.g., CAM-03"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="stream-location">Location</Label>
+            <Input
+              id="stream-location"
+              placeholder="e.g., North Entrance"
               required
             />
           </div>

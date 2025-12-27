@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2, PartyPopper, AlertCircle, Info } from 'lucide-react';
+import { Upload, Loader2, PartyPopper, AlertCircle, Info, Film, RefreshCw } from 'lucide-react';
 import { IncidentCard } from './incident-card';
 import type { Incident } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -38,15 +38,9 @@ export function VideoUploadForm() {
   const { toast } = useToast();
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Reset state when a new file is selected
     if (state.incident || state.error || state.success) {
-      startTransition(() => {
-        formAction(new FormData()); // Resets server action state
-      });
+       handleReset();
     }
-    setVideoFile(null);
-    setVideoPreview(null);
-    setThumbnail('');
 
     const file = event.target.files?.[0];
     if (file) {
@@ -76,6 +70,7 @@ export function VideoUploadForm() {
       const video = document.createElement('video');
       const videoUrl = URL.createObjectURL(file);
       video.src = videoUrl;
+      video.muted = true;
 
       video.onloadeddata = () => {
         video.currentTime = 1; // Seek to 1 second
@@ -103,18 +98,21 @@ export function VideoUploadForm() {
   };
 
   useEffect(() => {
-    if (!isPending && state.incident) {
+    if (isPending) return;
+
+    if (state.incident) {
       audioRef.current?.play().catch(e => console.error("Audio playback failed", e));
       toast({
         title: 'Accident Detected!',
         description: state.success || 'An incident has been logged and an alert was sent.',
+        variant: 'destructive',
       });
-    } else if (!isPending && state.success) {
+    } else if (state.success) {
         toast({
             title: 'Analysis Complete',
             description: state.success,
         });
-    } else if (!isPending && state.error) {
+    } else if (state.error) {
         toast({
             variant: 'destructive',
             title: 'Analysis Failed',
@@ -125,12 +123,14 @@ export function VideoUploadForm() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!videoFile || !thumbnail) return;
+    if (!videoFile || !thumbnail || isPending) return;
 
     const formData = new FormData(event.currentTarget);
     formData.set('video', videoFile);
     formData.set('thumbnail', thumbnail);
-    formAction(formData);
+    startTransition(() => {
+        formAction(formData);
+    });
   };
 
   const handleReset = () => {
@@ -140,14 +140,16 @@ export function VideoUploadForm() {
     setVideoFile(null);
     setVideoPreview(null);
     setThumbnail('');
-    formRef.current?.reset();
+    if (formRef.current) {
+        formRef.current.reset();
+    }
   }
 
   const showResults = !isPending && (state.incident || state.success || state.error);
   const isSubmitDisabled = isPending || isGeneratingThumbnail || !videoFile || !thumbnail;
 
   return (
-    <Card>
+    <Card className='shadow-lg'>
       <CardHeader>
         <CardTitle>Upload Video File</CardTitle>
         <CardDescription>
@@ -158,12 +160,7 @@ export function VideoUploadForm() {
         {!showResults ? (
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label
-                htmlFor="video-upload"
-                className="block text-sm font-medium text-foreground"
-              >
-                Video File
-              </label>
+              <Label htmlFor="video-upload">Video File</Label>
               <Input
                 id="video-upload"
                 name="video"
@@ -171,26 +168,34 @@ export function VideoUploadForm() {
                 accept="video/mp4,video/avi,video/mov,video/webm"
                 onChange={handleFileChange}
                 disabled={isPending}
-                required
+                className="file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-primary-foreground hover:file:bg-primary/90"
               />
             </div>
              
             {videoPreview && (
-              <div>
-                <video src={videoPreview} controls className="w-full rounded-md" />
+              <div className='rounded-lg overflow-hidden border-2 border-dashed'>
+                <video src={videoPreview} controls muted className="w-full aspect-video" />
               </div>
             )}
+             {!videoPreview && (
+                <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
+                    <Film className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-4 text-sm text-muted-foreground">
+                        Your video preview will appear here.
+                    </p>
+                </div>
+            )}
 
-            <Button type="submit" className="w-full" disabled={isSubmitDisabled}>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitDisabled}>
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
+                  Analyzing Video...
                 </>
               ) : isGeneratingThumbnail ? (
                  <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing Video...
+                  Preparing Video...
                 </>
               ) : (
                 <>
@@ -201,38 +206,37 @@ export function VideoUploadForm() {
             </Button>
           </form>
         ) : (
-          <div className="space-y-4 pt-4">
+          <div className="space-y-4 text-center">
             {state.incident && (
               <>
                 <Alert
-                  variant="default"
-                  className="border-destructive bg-destructive/10"
+                  variant="destructive"
+                  className="text-left"
                 >
-                  <PartyPopper className="h-4 w-4 text-destructive" />
-                  <AlertTitle className="font-semibold text-destructive">
+                  <PartyPopper className="h-4 w-4" />
+                  <AlertTitle className="font-semibold">
                     Accident Detected!
                   </AlertTitle>
-                  <AlertDescription className="text-destructive/90">
+                  <AlertDescription>
                     {state.success || 'An incident has been logged and an alert sent.'}
                   </AlertDescription>
                 </Alert>
-                <h3 className="text-lg font-medium">
-                  Detected Incident Details:
-                </h3>
-                <IncidentCard incident={state.incident} />
+                <div className="pt-4">
+                 <IncidentCard incident={state.incident} />
+                </div>
               </>
             )}
             {!state.incident && state.success && (
-              <Alert>
+              <Alert className='text-left'>
                 <Info className="h-4 w-4" />
                 <AlertTitle>Analysis Report</AlertTitle>
                 <AlertDescription>{state.success}</AlertDescription>
               </Alert>
             )}
             {state.error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className='text-left'>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Analysis Report</AlertTitle>
+                <AlertTitle>Analysis Failed</AlertTitle>
                 <AlertDescription>{state.error}</AlertDescription>
               </Alert>
             )}
@@ -240,8 +244,10 @@ export function VideoUploadForm() {
               variant="outline"
               onClick={handleReset}
               className="w-full"
+              size="lg"
             >
-              Upload Another Video
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Analyze Another Video
             </Button>
           </div>
         )}
