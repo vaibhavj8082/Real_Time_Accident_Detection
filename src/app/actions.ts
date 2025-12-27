@@ -6,6 +6,7 @@ import {
   type ConfigureAccidentThresholdInput,
 } from '@/ai/flows/accident-threshold-configuration';
 import { summarizeAccidentDetails } from '@/ai/flows/summarize-accident-details';
+import { generateAccidentImage } from '@/ai/flows/generate-accident-image';
 import type { Incident } from './lib/types';
 
 const settingsSchema = z.object({
@@ -88,10 +89,10 @@ export async function handleVideoUpload(
   }
 
   // Simulate video processing and AI analysis
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   // Simulate accident detection
-  const isAccidentDetected = Math.random() > 0.1; // 90% chance of detection for demo
+  const isAccidentDetected = Math.random() > 0.05; // 95% chance of detection for demo
 
   if (!isAccidentDetected) {
     return { error: 'No accident was detected in the uploaded video.' };
@@ -108,6 +109,9 @@ export async function handleVideoUpload(
 
     const summaryResult = await summarizeAccidentDetails(summaryInput);
 
+    // Generate an image of the accident
+    const imageResult = await generateAccidentImage({ summary: summaryResult.summary });
+
     // Trigger emergency alert
     await triggerEmergencyCall(summaryResult.summary);
 
@@ -117,8 +121,10 @@ export async function handleVideoUpload(
       time: accidentTime.toLocaleString(),
       status: 'New',
       summary: summaryResult.summary,
+      accuracy: summaryResult.accuracy,
+      severity: summaryResult.severity,
       thumbnail: {
-        url: 'https://picsum.photos/seed/upload/400/300',
+        url: imageResult.imageUrl,
         hint: 'security camera',
       },
     };

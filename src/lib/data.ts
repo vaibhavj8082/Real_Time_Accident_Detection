@@ -12,6 +12,8 @@ export const mockIncidents: Incident[] = [
       url: 'https://picsum.photos/seed/accident1/400/300',
       hint: 'car accident',
     },
+    accuracy: 0.95,
+    severity: 'Major',
   },
   {
     id: 'INC-002',
@@ -24,6 +26,8 @@ export const mockIncidents: Incident[] = [
       url: 'https://picsum.photos/seed/accident2/400/300',
       hint: 'fender bender',
     },
+    accuracy: 0.99,
+    severity: 'Minor',
   },
   {
     id: 'INC-003',
@@ -36,5 +40,7 @@ export const mockIncidents: Incident[] = [
       url: 'https://picsum.photos/seed/accident3/400/300',
       hint: 'night crash',
     },
+    accuracy: 0.92,
+    severity: 'Moderate',
   },
 ];

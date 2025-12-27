@@ -11,7 +11,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
-import { AlertTriangle, PhoneOutgoing } from 'lucide-react';
+import {
+  AlertTriangle,
+  Activity,
+  ShieldAlert,
+  ShieldCheck,
+  Shield,
+} from 'lucide-react';
+import { Progress } from '../ui/progress';
 
 type IncidentCardProps = {
   incident: Incident;
@@ -23,11 +30,32 @@ const statusColors = {
   Resolved: 'bg-green-500 text-white',
 };
 
+const severityConfig = {
+  Major: {
+    icon: ShieldAlert,
+    color: 'text-destructive',
+    label: 'Major',
+  },
+  Moderate: {
+    icon: Shield,
+    color: 'text-yellow-500',
+    label: 'Moderate',
+  },
+  Minor: {
+    icon: ShieldCheck,
+    color: 'text-green-600',
+    label: 'Minor',
+  },
+};
+
 export function IncidentCard({ incident }: IncidentCardProps) {
+  const { icon: SeverityIcon, color: severityColor, label: severityLabel } =
+    severityConfig[incident.severity] || severityConfig.Moderate;
+
   return (
     <Card className="flex flex-col overflow-hidden animate-new-item-in">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-start justify-between">
           <span>{incident.location}</span>
           <Badge
             className={cn(
@@ -53,6 +81,30 @@ export function IncidentCard({ incident }: IncidentCardProps) {
           />
         </div>
         <p className="text-sm text-muted-foreground">{incident.summary}</p>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm font-medium">Accuracy</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Progress value={incident.accuracy * 100} className="h-2 w-24" />
+              <span className="text-sm font-semibold tabular-nums">
+                {(incident.accuracy * 100).toFixed(0)}%
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <SeverityIcon className={cn('h-5 w-5', severityColor)} />
+              <span className="text-sm font-medium">Severity</span>
+            </div>
+            <span className={cn('text-sm font-semibold', severityColor)}>
+              {severityLabel}
+            </span>
+          </div>
+        </div>
       </CardContent>
       <CardFooter>
         <Button className="w-full" variant="destructive">

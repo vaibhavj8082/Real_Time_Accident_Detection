@@ -8,4 +8,6 @@ export type Incident = {
     url: string;
     hint: string;
   };
+  accuracy: number;
+  severity: 'Minor' | 'Moderate' | 'Major';
 };

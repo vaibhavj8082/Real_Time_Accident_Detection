@@ -19,6 +19,14 @@ export type SummarizeAccidentDetailsInput = z.infer<typeof SummarizeAccidentDeta
 
 const SummarizeAccidentDetailsOutputSchema = z.object({
   summary: z.string().describe('A brief summary of the accident details.'),
+  accuracy: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe('The confidence score of the accident detection, from 0 to 1.'),
+  severity: z
+    .enum(['Minor', 'Moderate', 'Major'])
+    .describe('The estimated severity of the accident.'),
 });
 export type SummarizeAccidentDetailsOutput = z.infer<typeof SummarizeAccidentDetailsOutputSchema>;
 
@@ -30,15 +38,15 @@ const prompt = ai.definePrompt({
   name: 'summarizeAccidentDetailsPrompt',
   input: {schema: SummarizeAccidentDetailsInputSchema},
   output: {schema: SummarizeAccidentDetailsOutputSchema},
-  prompt: `You are an AI assistant specializing in summarizing accident details.
+  prompt: `You are an AI assistant specializing in analyzing and summarizing accident details from video footage.
 
-  Create a concise summary of the accident, including the time it occurred, the location (if available), and a brief description of the events leading up to the accident.
+  Based on the following information, create a concise summary. Also, provide a detection accuracy score (a float between 0 and 1) and classify the accident's severity as 'Minor', 'Moderate', or 'Major'.
 
   Time: {{{time}}}
   Location: {{{location}}}
   Description: {{{description}}}
 
-  Summary:`,
+  Generate a JSON object with the summary, accuracy, and severity.`,
 });
 
 const summarizeAccidentDetailsFlow = ai.defineFlow(
