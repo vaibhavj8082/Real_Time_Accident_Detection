@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useRef } from 'react';
+import { useState, useActionState, useRef, useEffect } from 'react';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -40,6 +40,7 @@ export function VideoUploadForm() {
   const [state, formAction, isPending] = useActionState(handleVideoUpload, initialState);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
+  const [isThumbnailReady, setIsThumbnailReady] = useState(false);
   const thumbnailRef = useRef<HTMLInputElement>(null);
 
   const generateVideoThumbnail = (file: File): Promise<string> => {
@@ -62,11 +63,23 @@ export function VideoUploadForm() {
         }
         URL.revokeObjectURL(video.src);
       };
+      video.onerror = () => {
+        resolve(''); // Resolve with empty string on error
+        URL.revokeObjectURL(video.src);
+      }
     });
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    // Reset state on new file selection
+    setFilePreview(null);
+    setFileName('');
+    setIsThumbnailReady(false);
+    if (thumbnailRef.current) {
+        thumbnailRef.current.value = '';
+    }
+
     if (file) {
       setFileName(file.name);
       if (file.type.startsWith('video/')) {
@@ -75,13 +88,11 @@ export function VideoUploadForm() {
         const thumbnailDataUrl = await generateVideoThumbnail(file);
         if (thumbnailRef.current) {
           thumbnailRef.current.value = thumbnailDataUrl;
+          if (thumbnailDataUrl) {
+            setIsThumbnailReady(true);
+          }
         }
-      } else {
-        setFilePreview(null);
       }
-    } else {
-      setFileName('');
-      setFilePreview(null);
     }
   };
 
@@ -122,7 +133,7 @@ export function VideoUploadForm() {
             </div>
           )}
           <input type="hidden" name="thumbnail" ref={thumbnailRef} />
-          <SubmitButton disabled={isPending} />
+          <SubmitButton disabled={isPending || !isThumbnailReady} />
         </form>
 
         {state?.error && (
