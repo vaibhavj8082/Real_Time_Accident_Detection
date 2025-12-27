@@ -3,49 +3,18 @@ import type { Incident } from '@/lib/types';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { Button } from '../ui/button';
-import {
-  AlertTriangle,
-  Activity,
-} from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Progress } from '../ui/progress';
 
 type IncidentCardProps = {
   incident: Incident;
 };
 
-const statusColors = {
-  New: 'bg-accent text-accent-foreground',
-  Ongoing: 'bg-blue-500 text-white',
-  Resolved: 'bg-green-500 text-white',
-};
-
 export function IncidentCard({ incident }: IncidentCardProps) {
   return (
     <Card className="flex flex-col overflow-hidden animate-new-item-in">
-      <CardHeader>
-        <CardTitle className="flex items-start justify-between">
-          <span>{incident.location}</span>
-          <Badge
-            className={cn(
-              'whitespace-nowrap',
-              statusColors[incident.status] || 'bg-gray-500 text-white'
-            )}
-            variant="default"
-          >
-            {incident.status}
-          </Badge>
-        </CardTitle>
-        <CardDescription>{incident.time}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-4">
+      <CardContent className="flex-grow space-y-4 pt-6">
         <div className="aspect-video overflow-hidden rounded-md">
           <Image
             src={incident.thumbnail.url}
@@ -72,12 +41,6 @@ export function IncidentCard({ incident }: IncidentCardProps) {
           </div>
         </div>
       </CardContent>
-      <CardFooter>
-        <Button className="w-full" variant="destructive">
-          <AlertTriangle className="mr-2 h-4 w-4" />
-          View Details & Respond
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

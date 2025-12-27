@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useRef } from 'react';
+import { useState, useActionState, useRef, useEffect } from 'react';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -83,7 +83,12 @@ export function VideoUploadForm() {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     // Reset form and all local state
-    formRef.current?.reset();
+    if (formRef.current) {
+      formRef.current.reset();
+    }
+    
+    // Explicitly reset the action state if possible or just handle UI state
+    // Note: useActionState doesn't have a programmatic reset, so we reset dependent UI state
     setFilePreview(null);
     setFileName('');
     setIsThumbnailReady(false);
@@ -109,6 +114,15 @@ export function VideoUploadForm() {
       }
     }
   };
+  
+  useEffect(() => {
+    if (!isPending && (state.error || state.incident)) {
+        if(fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }
+  }, [isPending, state]);
+
 
   return (
     <Card>
@@ -135,7 +149,6 @@ export function VideoUploadForm() {
               onChange={handleFileChange}
               disabled={isPending}
               ref={fileInputRef}
-              required
               key={fileName} // Reset input on new file
             />
             {fileName && !isPending && (
