@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Upload, Loader2, PartyPopper, AlertCircle } from 'lucide-react';
+import { Upload, Loader2, PartyPopper, AlertCircle, Info } from 'lucide-react';
 import { IncidentCard } from './incident-card';
 import type { Incident } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -24,13 +24,7 @@ const initialState: {
   isError?: boolean;
 } = {};
 
-function SubmitButton({
-  isPending,
-  disabled,
-}: {
-  isPending: boolean;
-  disabled: boolean;
-}) {
+function SubmitButton({ isPending, disabled }: { isPending: boolean; disabled: boolean; }) {
   return (
     <Button type="submit" className="w-full" disabled={isPending || disabled}>
       {isPending ? (
@@ -64,6 +58,8 @@ export function VideoUploadForm() {
     if (formRef.current) {
       formRef.current.reset();
     }
+     // Reset the action state by dispatching an empty form data
+    formAction(new FormData());
   };
 
   const generateVideoThumbnail = (videoFile: File): Promise<string> => {
@@ -94,15 +90,11 @@ export function VideoUploadForm() {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Reset previous state when a new file is selected
-    if (state.incident || state.isError) {
-      formAction(new FormData()); // Clears the action state
-    }
+    resetForm();
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       setFilePreview(URL.createObjectURL(selectedFile));
-      setThumbnail('');
       setIsGeneratingThumbnail(true);
       try {
         const thumb = await generateVideoThumbnail(selectedFile);
@@ -117,31 +109,33 @@ export function VideoUploadForm() {
       } finally {
         setIsGeneratingThumbnail(false);
       }
-    } else {
-      resetForm();
     }
   };
 
   useEffect(() => {
     if (isPending) return;
 
-    if (state.success) {
+    if (state.success && state.incident) {
       toast({
-        title: 'Alert Sent',
+        title: 'Analysis Complete',
         description: state.success,
       });
-      // Don't reset the form immediately, let user see the result
+    } else if (state.success) {
+      // No incident, just a success message (e.g. no accident detected)
+      toast({
+        title: 'Analysis Complete',
+        description: state.success,
+      });
     } else if (state.error) {
       toast({
         variant: 'destructive',
         title: 'Analysis Failed',
         description: state.error,
       });
-      // Don't reset, let user try again
     }
   }, [state, isPending, toast]);
 
-  const showResults = !isPending && (state.incident || state.isError);
+  const showResults = !isPending && (state.incident || state.success || state.error);
 
   return (
     <Card>
@@ -152,7 +146,11 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form ref={formRef} action={formAction} className="space-y-6">
+        <form
+          ref={formRef}
+          action={formAction}
+          className="space-y-6"
+        >
           <div className="space-y-2">
             <label
               htmlFor="video-upload"
@@ -194,16 +192,23 @@ export function VideoUploadForm() {
                 >
                   <PartyPopper className="h-4 w-4 text-green-700 dark:text-green-300" />
                   <AlertTitle className="font-semibold text-green-800 dark:text-green-300">
-                    Analysis Complete: Accident Detected!
+                    Accident Detected!
                   </AlertTitle>
                   <AlertDescription className="text-green-700 dark:text-green-400">
-                    The analysis is complete and an incident has been logged.
+                    {state.success || 'An incident has been logged.'}
                   </AlertDescription>
                 </Alert>
                 <h3 className="text-lg font-medium">Detected Incident Details:</h3>
                 <IncidentCard incident={state.incident} />
               </>
             )}
+             {!state.incident && state.success && (
+               <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Analysis Report</AlertTitle>
+                  <AlertDescription>{state.success}</AlertDescription>
+                </Alert>
+             )}
             {state.isError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />

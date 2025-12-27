@@ -6,6 +6,7 @@ import {
 } from '@/ai/flows/accident-threshold-configuration';
 import { summarizeAccidentDetails } from '@/ai/flows/summarize-accident-details';
 import type { Incident } from './lib/types';
+import twilio from 'twilio';
 
 const settingsSchema = z.object({
   accidentConfidenceThreshold: z.coerce.number().min(0).max(1),
@@ -13,47 +14,35 @@ const settingsSchema = z.object({
 });
 
 /**
- * Simulates sending an emergency SMS to a predefined number.
- * In a real application, this would integrate with an SMS API like Twilio.
- * Includes retry logic with exponential backoff in case of failure.
+ * Sends an emergency SMS to a predefined number using Twilio.
+ * It reads credentials from environment variables.
  */
 async function triggerEmergencySms(incidentSummary: string) {
-  const emergencyNumber = '9307187326';
-  console.log(`Initiating emergency SMS to ${emergencyNumber}...`);
-  console.log(`Incident Details: ${incidentSummary}`);
+  const toPhoneNumber = '9307187326';
+  const fromPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
 
-  let attempts = 0;
-  const maxAttempts = 3;
-  let delay = 1000; // 1 second initial delay
-
-  while (attempts < maxAttempts) {
-    try {
-      // Simulate API call to a telephony/SMS service
-      const success = await new Promise<boolean>((resolve) =>
-        setTimeout(() => {
-          // Flip this to false to test retry logic
-          resolve(true);
-        }, 1000)
-      );
-
-      if (success) {
-        console.log(`Successfully sent SMS to ${emergencyNumber}.`);
-        return { success: true, message: `Emergency alert sent to ${emergencyNumber}.` };
-      }
-    } catch (error) {
-      console.error(`Attempt ${attempts + 1} failed:`, error);
-    }
-
-    attempts++;
-    if (attempts < maxAttempts) {
-      console.log(`Retrying in ${delay / 1000} seconds...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      delay *= 2; // Exponential backoff
-    }
+  if (!fromPhoneNumber || !accountSid || !authToken) {
+    const errorMessage = 'Twilio credentials are not configured in environment variables.';
+    console.error(errorMessage);
+    return { success: false, message: errorMessage };
   }
 
-  console.error(`Failed to send SMS to ${emergencyNumber} after ${maxAttempts} attempts.`);
-  return { success: false, message: `Failed to send SMS to ${emergencyNumber}.` };
+  const client = twilio(accountSid, authToken);
+
+  try {
+    const message = await client.messages.create({
+      body: incidentSummary,
+      from: fromPhoneNumber,
+      to: `+${toPhoneNumber}`, // Assuming the number is in a format that needs a country code prefix
+    });
+    console.log(`Successfully sent SMS. Message SID: ${message.sid}`);
+    return { success: true, message: `Emergency alert sent to ${toPhoneNumber}.` };
+  } catch (error) {
+    console.error('Failed to send SMS:', error);
+    return { success: false, message: 'Failed to send emergency SMS via Twilio.' };
+  }
 }
 
 export async function handleSettingsUpdate(
@@ -77,10 +66,9 @@ export async function handleSettingsUpdate(
 }
 
 export async function handleVideoUpload(
-  previousState: { error?: string; incident?: Incident, success?: string; isError?: boolean },
+  previousState: { error?: string; incident?: Incident; success?: string; isError?: boolean },
   formData: FormData
 ): Promise<{ error?: string; incident?: Incident; success?: string; isError?: boolean }> {
-
   // This is used to reset the state from the client
   if (!formData.has('video')) {
     return {};
@@ -97,7 +85,6 @@ export async function handleVideoUpload(
     return { error: 'Could not generate video thumbnail. Please try again with a different video.', isError: true };
   }
 
-
   // Simulate video processing and AI analysis
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -105,7 +92,7 @@ export async function handleVideoUpload(
   const isAccidentDetected = Math.random() > 0.05; // 95% chance of detection for demo
 
   if (!isAccidentDetected) {
-    return { error: 'No accident was detected in the uploaded video.', isError: true };
+    return { success: 'Analysis complete: No accident was detected.' };
   }
 
   try {
@@ -118,7 +105,7 @@ export async function handleVideoUpload(
     };
 
     const summaryResult = await summarizeAccidentDetails(summaryInput);
-    const incidentSummary = `An accident was detected in the video uploaded at ${accidentTime.toLocaleTimeString()}. Detection accuracy: ${Math.round(summaryResult.accuracy * 100)}%.`;
+    const incidentSummary = `Accident Alert! Detected at ${accidentTime.toLocaleTimeString()}. Location: Uploaded Video. Accuracy: ${Math.round(summaryResult.accuracy * 100)}%.`;
 
     // Trigger emergency alert
     const smsResult = await triggerEmergencySms(incidentSummary);
@@ -138,7 +125,7 @@ export async function handleVideoUpload(
     if (smsResult.success) {
       return { incident: newIncident, success: smsResult.message };
     } else {
-      // SMS failed but we still show the incident
+      // SMS failed but we still show the incident and the error
       return { incident: newIncident, error: smsResult.message, isError: true };
     }
 
