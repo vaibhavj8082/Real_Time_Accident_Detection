@@ -26,7 +26,7 @@ async function triggerEmergencyEmail(incidentSummary: string) {
   const smtpPass = process.env.SMTP_PASS;
 
   if (!fromEmail || !smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-    const errorMessage = 'Email credentials (SMTP) are not configured in environment variables.';
+    const errorMessage = 'Email credentials (EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) are not configured in .env file.';
     console.error(errorMessage);
     return { success: false, message: errorMessage };
   }
