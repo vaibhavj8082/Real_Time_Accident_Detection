@@ -21,90 +21,66 @@ const initialState: {
   error?: string;
   incident?: Incident;
   success?: string;
-  isError?: boolean;
 } = {};
-
-function SubmitButton({ disabled }: { disabled: boolean }) {
-  return (
-    <Button type="submit" className="w-full" disabled={disabled}>
-      {disabled && !initialState ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Analyzing...
-        </>
-      ) : (
-        <>
-          <Upload className="mr-2 h-4 w-4" />
-          Analyze Video
-        </>
-      )}
-    </Button>
-  );
-}
 
 export function VideoUploadForm() {
   const [state, formAction, isPending] = useActionState(
     handleVideoUpload,
     initialState
   );
-  const [file, setFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<string>('');
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
+  
   const formRef = useRef<HTMLFormElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    // Reset previous state when a new file is chosen
-    resetForm();
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Reset state when a new file is selected
+    if (state.incident || state.error || state.success) {
+      startTransition(() => {
+        formAction(new FormData()); // Resets server action state
+      });
+    }
+    setVideoFile(null);
+    setVideoPreview(null);
+    setThumbnail('');
 
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setFilePreview(URL.createObjectURL(selectedFile));
+    const file = event.target.files?.[0];
+    if (file) {
+      setVideoFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setVideoPreview(previewUrl);
+
       setIsGeneratingThumbnail(true);
       try {
-        const thumb = await generateVideoThumbnail(selectedFile);
+        const thumb = await generateVideoThumbnail(file);
         setThumbnail(thumb);
       } catch (error) {
-        console.error(error);
+        console.error('Thumbnail generation failed:', error);
         toast({
           variant: 'destructive',
-          title: 'Thumbnail Generation Failed',
-          description:
-            (error as Error).message ||
-            'Could not generate a preview. Please try another video.',
+          title: 'Thumbnail Failed',
+          description: 'Could not generate a video preview. Please try a different video.',
         });
       } finally {
         setIsGeneratingThumbnail(false);
       }
     }
   };
-  
-  const resetForm = () => {
-    setFile(null);
-    setFilePreview(null);
-    setThumbnail('');
-    formRef.current?.reset();
-     // This special action call resets the server state
-    if (state.incident || state.error || state.success) {
-      startTransition(() => {
-        formAction(new FormData());
-      });
-    }
-  };
 
-
-  const generateVideoThumbnail = (videoFile: File): Promise<string> => {
+  const generateVideoThumbnail = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
-      video.src = URL.createObjectURL(videoFile);
+      const videoUrl = URL.createObjectURL(file);
+      video.src = videoUrl;
+
       video.onloadeddata = () => {
-        video.currentTime = 1; // Seek to 1 second to get a frame
+        video.currentTime = 1; // Seek to 1 second
       };
+
       video.onseeked = () => {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
@@ -114,46 +90,61 @@ export function VideoUploadForm() {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL('image/jpeg'));
         } else {
-          reject(new Error('Could not get canvas context.'));
+          reject(new Error('Canvas context is not available.'));
         }
-        URL.revokeObjectURL(video.src);
+        URL.revokeObjectURL(videoUrl);
       };
-      video.onerror = (e) => {
-        reject(new Error('Failed to load video for thumbnail generation.'));
-        URL.revokeObjectURL(video.src);
+
+      video.onerror = () => {
+        reject(new Error('Failed to load video for thumbnail.'));
+        URL.revokeObjectURL(videoUrl);
       };
     });
   };
 
   useEffect(() => {
-    if (isPending) return;
-
-    if (state.success && state.incident) {
+    if (!isPending && state.incident) {
+      audioRef.current?.play().catch(e => console.error("Audio playback failed", e));
       toast({
         title: 'Accident Detected!',
-        description: state.success,
+        description: state.success || 'An incident has been logged and an alert was sent.',
       });
-      // Play sound on accident detection
-      audioRef.current?.play().catch(error => console.error("Audio playback failed:", error));
-    } else if (state.success) {
-      // No incident, just a success message
-      toast({
-        title: 'Analysis Complete',
-        description: state.success,
-      });
-    } else if (state.error) {
-      toast({
-        variant: 'destructive',
-        title: 'Analysis Failed',
-        description: state.error,
-      });
+    } else if (!isPending && state.success) {
+        toast({
+            title: 'Analysis Complete',
+            description: state.success,
+        });
+    } else if (!isPending && state.error) {
+        toast({
+            variant: 'destructive',
+            title: 'Analysis Failed',
+            description: state.error,
+        });
     }
   }, [state, isPending, toast]);
 
-  const showResults =
-    !isPending && (state.incident || state.success || state.error);
-  
-  const isSubmitting = isPending || isGeneratingThumbnail;
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!videoFile || !thumbnail) return;
+
+    const formData = new FormData(event.currentTarget);
+    formData.set('video', videoFile);
+    formData.set('thumbnail', thumbnail);
+    formAction(formData);
+  };
+
+  const handleReset = () => {
+    startTransition(() => {
+      formAction(new FormData()); // Resets server action state
+    });
+    setVideoFile(null);
+    setVideoPreview(null);
+    setThumbnail('');
+    formRef.current?.reset();
+  }
+
+  const showResults = !isPending && (state.incident || state.success || state.error);
+  const isSubmitDisabled = isPending || isGeneratingThumbnail || !videoFile || !thumbnail;
 
   return (
     <Card>
@@ -164,61 +155,65 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form ref={formRef} action={formAction} className="space-y-6">
-          <div className="space-y-2">
-            <label
-              htmlFor="video-upload"
-              className="block text-sm font-medium text-foreground"
-            >
-              Video File
-            </label>
-            <Input
-              id="video-upload"
-              name="video"
-              type="file"
-              accept="video/mp4,video/avi,video/mov"
-              onChange={handleFileChange}
-              disabled={isSubmitting}
-              required
-            />
-            <input type="hidden" name="thumbnail" value={thumbnail} />
-          </div>
-
-          {filePreview && !showResults && (
-            <div>
-              <video src={filePreview} controls className="w-full rounded-md" />
+        {!showResults ? (
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label
+                htmlFor="video-upload"
+                className="block text-sm font-medium text-foreground"
+              >
+                Video File
+              </label>
+              <Input
+                id="video-upload"
+                name="video"
+                type="file"
+                accept="video/mp4,video/avi,video/mov,video/webm"
+                onChange={handleFileChange}
+                disabled={isPending}
+                required
+              />
             </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={isSubmitting || !file || !thumbnail}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Analyze Video
-              </>
+             
+            {videoPreview && (
+              <div>
+                <video src={videoPreview} controls className="w-full rounded-md" />
+              </div>
             )}
-          </Button>
-        </form>
 
-        {showResults && (
+            <Button type="submit" className="w-full" disabled={isSubmitDisabled}>
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : isGeneratingThumbnail ? (
+                 <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing Video...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Analyze Video
+                </>
+              )}
+            </Button>
+          </form>
+        ) : (
           <div className="space-y-4 pt-4">
             {state.incident && (
               <>
                 <Alert
                   variant="default"
-                  className="border-green-300 bg-green-100 dark:border-green-800 dark:bg-green-950"
+                  className="border-destructive bg-destructive/10"
                 >
-                  <PartyPopper className="h-4 w-4 text-green-700 dark:text-green-300" />
-                  <AlertTitle className="font-semibold text-green-800 dark:text-green-300">
+                  <PartyPopper className="h-4 w-4 text-destructive" />
+                  <AlertTitle className="font-semibold text-destructive">
                     Accident Detected!
                   </AlertTitle>
-                  <AlertDescription className="text-green-700 dark:text-green-400">
-                    {state.success || 'An incident has been logged.'}
+                  <AlertDescription className="text-destructive/90">
+                    {state.success || 'An incident has been logged and an alert sent.'}
                   </AlertDescription>
                 </Alert>
                 <h3 className="text-lg font-medium">
@@ -234,7 +229,7 @@ export function VideoUploadForm() {
                 <AlertDescription>{state.success}</AlertDescription>
               </Alert>
             )}
-            {state.isError && (
+            {state.error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Analysis Report</AlertTitle>
@@ -243,7 +238,7 @@ export function VideoUploadForm() {
             )}
             <Button
               variant="outline"
-              onClick={resetForm}
+              onClick={handleReset}
               className="w-full"
             >
               Upload Another Video
@@ -251,8 +246,7 @@ export function VideoUploadForm() {
           </div>
         )}
       </CardContent>
-      {/* Audio element for the alarm sound */}
-      <audio ref={audioRef} src="/alarm.mp3" className="hidden" />
+      <audio ref={audioRef} src="/alarm.mp3" className="hidden" preload="auto" />
     </Card>
   );
 }
