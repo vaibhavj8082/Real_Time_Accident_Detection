@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "accident-1",
+      "description": "A car accident on a highway.",
+      "imageUrl": "https://images.unsplash.com/photo-1627398924667-7f4ab354ab49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXIlMjBhY2NpZGVudHxlbnwwfHx8fDE3NjY4MTgzMTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "car accident"
+    },
+    {
+      "id": "accident-2",
+      "description": "A minor fender bender in a city street.",
+      "imageUrl": "https://picsum.photos/seed/accident2/400/300",
+      "imageHint": "fender bender"
+    },
+    {
+      "id": "accident-3",
+      "description": "Night time car crash on a wet road.",
+      "imageUrl": "https://images.unsplash.com/photo-1643323977683-c38514b43447?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxuaWdodCUyMGNyYXNofGVufDB8fHx8MTc2NjgxODMxNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "night crash"
+    },
+    {
+      "id": "accident-4",
+      "description": "A multiple car pile-up on a freeway.",
+      "imageUrl": "https://images.unsplash.com/photo-1662104676018-0e913a7a1c05?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYXIlMjBwaWxldXB8ZW58MHx8fHwxNzY2ODE4MzE0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "car pileup"
+    }
+  ]
 }

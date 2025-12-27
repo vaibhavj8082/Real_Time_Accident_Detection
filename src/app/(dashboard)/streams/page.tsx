@@ -1,0 +1,75 @@
+import { RtspForm } from '@/components/dashboard/rtsp-form';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { AlertTriangle, Video } from 'lucide-react';
+import Image from 'next/image';
+
+export default function StreamsPage() {
+  return (
+    <div className="grid gap-8 lg:grid-cols-3">
+      <div className="lg:col-span-1">
+        <RtspForm />
+      </div>
+      <div className="lg:col-span-2">
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Active Streams</h2>
+            <p className="text-muted-foreground">
+              Monitoring the following live video feeds for incidents.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">CAM-01: Highway 99</CardTitle>
+                <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                  <AlertTriangle className="h-5 w-5 animate-pulse" />
+                  ACCIDENT DETECTED
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-video overflow-hidden rounded-md border-2 border-destructive shadow-lg">
+                  <Image
+                    src="https://picsum.photos/seed/stream1/800/450"
+                    alt="Live stream of Highway 99"
+                    width={800}
+                    height={450}
+                    className="h-full w-full object-cover"
+                    data-ai-hint="highway traffic"
+                  />
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Status: Real-time analysis. A potential collision has been flagged at 15:30:12.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">CAM-02: Downtown Crossing</CardTitle>
+                 <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Video className="h-5 w-5" />
+                  Monitoring
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="aspect-video overflow-hidden rounded-md">
+                   <Image
+                    src="https://picsum.photos/seed/stream2/800/450"
+                    alt="Live stream of Downtown Crossing"
+                    width={800}
+                    height={450}
+                    className="h-full w-full object-cover"
+                    data-ai-hint="city intersection"
+                  />
+                </div>
+                 <p className="mt-2 text-sm text-muted-foreground">
+                  Status: All clear. No anomalies detected.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
