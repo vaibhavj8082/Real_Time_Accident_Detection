@@ -21,10 +21,10 @@ const initialState: { error?: string; incident?: Incident } = {
   incident: undefined,
 };
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
+function SubmitButton({ isPending }: { isPending: boolean }) {
   return (
-    <Button type="submit" className="w-full" disabled={disabled}>
-      {disabled ? (
+    <Button type="submit" className="w-full" disabled={isPending}>
+      {isPending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Analyzing...
@@ -40,10 +40,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 }
 
 export function VideoUploadForm() {
-  const [state, formAction, isPending] = useActionState(
-    handleVideoUpload,
-    initialState
-  );
+  const [state, formAction, isPending] = useActionState(handleVideoUpload, initialState);
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<string>('');
@@ -55,7 +52,7 @@ export function VideoUploadForm() {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(videoFile);
       video.onloadeddata = () => {
-        video.currentTime = 1; // Capture frame at 1 second
+        video.currentTime = 1;
       };
       video.onseeked = () => {
         const canvas = document.createElement('canvas');
@@ -71,25 +68,22 @@ export function VideoUploadForm() {
         URL.revokeObjectURL(video.src);
       };
       video.onerror = () => {
-        resolve(''); // Resolve with empty string on error
+        resolve('');
         URL.revokeObjectURL(video.src);
       };
     });
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
-    // Reset previous results
     if (state.incident || state.error) {
-       formAction(new FormData());
+      formAction(new FormData());
     }
 
     if (selectedFile) {
       setFile(selectedFile);
       setFilePreview(URL.createObjectURL(selectedFile));
-      setThumbnail(''); // Reset thumbnail while generating
+      setThumbnail('');
       const thumb = await generateVideoThumbnail(selectedFile);
       setThumbnail(thumb);
     } else {
@@ -98,25 +92,24 @@ export function VideoUploadForm() {
       setThumbnail('');
     }
   };
-  
+
   useEffect(() => {
-    // Reset file input when the form is submitted successfully and is no longer pending
     if (!isPending && (state.incident || state.error)) {
-        if(formRef.current) {
-            formRef.current.reset();
-        }
-        setFile(null);
-        setFilePreview(null);
-        setThumbnail('');
+      if (formRef.current) {
+        formRef.current.reset();
+      }
+      setFile(null);
+      setFilePreview(null);
+      setThumbnail('');
     }
   }, [isPending, state.incident, state.error]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!file || !thumbnail) return;
+
     const formData = new FormData(e.currentTarget);
-    if(file) {
-      formData.set('video', file);
-    }
+    formData.set('video', file);
     formData.set('thumbnail', thumbnail);
     formAction(formData);
   };
@@ -130,7 +123,7 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form ref={formRef} action={formAction} onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label
               htmlFor="video-upload"
@@ -153,7 +146,7 @@ export function VideoUploadForm() {
               <video src={filePreview} controls className="w-full rounded-md" />
             </div>
           )}
-          <SubmitButton disabled={isPending || !file || !thumbnail} />
+          <SubmitButton isPending={isPending} />
         </form>
 
         {state?.error && !isPending && (
@@ -175,7 +168,7 @@ export function VideoUploadForm() {
               </AlertTitle>
               <AlertDescription className="text-green-700 dark:text-green-400">
                 An accident was detected and an alert has been sent.
-              </Description>
+              </AlertDescription>
             </Alert>
             <h3 className="text-lg font-medium">Detected Incident:</h3>
             <IncidentCard incident={state.incident} />
