@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useRef, useEffect } from 'react';
+import { useState, useActionState, useRef } from 'react';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -48,8 +48,9 @@ export function VideoUploadForm() {
   const [fileName, setFileName] = useState<string>('');
   const [isThumbnailReady, setIsThumbnailReady] = useState(false);
   const thumbnailRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
 
   const generateVideoThumbnail = (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -83,8 +84,6 @@ export function VideoUploadForm() {
   ) => {
     // Reset form and all local state
     formRef.current?.reset();
-    initialState.error = undefined;
-    initialState.incident = undefined;
     setFilePreview(null);
     setFileName('');
     setIsThumbnailReady(false);
@@ -99,6 +98,7 @@ export function VideoUploadForm() {
       if (file.type.startsWith('video/')) {
         const previewUrl = URL.createObjectURL(file);
         setFilePreview(previewUrl);
+        setIsThumbnailReady(false); // Set to false while generating
         const thumbnailDataUrl = await generateVideoThumbnail(file);
         if (thumbnailRef.current) {
           thumbnailRef.current.value = thumbnailDataUrl;
@@ -136,6 +136,7 @@ export function VideoUploadForm() {
               disabled={isPending}
               ref={fileInputRef}
               required
+              key={fileName} // Reset input on new file
             />
             {fileName && !isPending && (
               <p className="text-sm text-muted-foreground">
@@ -149,7 +150,7 @@ export function VideoUploadForm() {
             </div>
           )}
           <input type="hidden" name="thumbnail" ref={thumbnailRef} />
-          <SubmitButton disabled={isPending || !isThumbnailReady} />
+          <SubmitButton disabled={isPending || (!!fileName && !isThumbnailReady)} />
         </form>
 
         {state?.error && !isPending && (
