@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useActionState, useRef } from 'react';
-import { useFormStatus } from 'react-dom';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -19,11 +18,10 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const initialState: { error?: string; incident?: Incident } = {};
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
+function SubmitButton({ disabled }: { disabled: boolean }) {
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? (
+    <Button type="submit" className="w-full" disabled={disabled}>
+      {disabled ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Analyzing...
@@ -39,7 +37,7 @@ function SubmitButton() {
 }
 
 export function VideoUploadForm() {
-  const [state, formAction] = useActionState(handleVideoUpload, initialState);
+  const [state, formAction, isPending] = useActionState(handleVideoUpload, initialState);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const thumbnailRef = useRef<HTMLInputElement>(null);
@@ -124,7 +122,7 @@ export function VideoUploadForm() {
             </div>
           )}
           <input type="hidden" name="thumbnail" ref={thumbnailRef} />
-          <SubmitButton />
+          <SubmitButton disabled={isPending} />
         </form>
 
         {state?.error && (

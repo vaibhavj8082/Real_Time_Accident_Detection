@@ -13,13 +13,13 @@ const settingsSchema = z.object({
 });
 
 /**
- * Simulates triggering an emergency call to a predefined number.
- * In a real application, this would integrate with a telephony API like Twilio.
- * Includes retry logic with exponential backoff in case of call failure.
+ * Simulates sending an emergency SMS to a predefined number.
+ * In a real application, this would integrate with an SMS API like Twilio.
+ * Includes retry logic with exponential backoff in case of failure.
  */
-async function triggerEmergencyCall(incidentSummary: string) {
+async function triggerEmergencySms(incidentSummary: string) {
   const emergencyNumber = '9307187326';
-  console.log(`Initiating emergency call to ${emergencyNumber}...`);
+  console.log(`Initiating emergency SMS to ${emergencyNumber}...`);
   console.log(`Incident Details: ${incidentSummary}`);
 
   let attempts = 0;
@@ -28,7 +28,7 @@ async function triggerEmergencyCall(incidentSummary: string) {
 
   while (attempts < maxAttempts) {
     try {
-      // Simulate API call to a telephony service
+      // Simulate API call to a telephony/SMS service
       const success = await new Promise<boolean>((resolve) =>
         setTimeout(() => {
           // Flip this to false to test retry logic
@@ -37,8 +37,8 @@ async function triggerEmergencyCall(incidentSummary: string) {
       );
 
       if (success) {
-        console.log(`Successfully initiated call to ${emergencyNumber}.`);
-        return { success: true, message: `Call initiated to ${emergencyNumber}.` };
+        console.log(`Successfully sent SMS to ${emergencyNumber}.`);
+        return { success: true, message: `SMS sent to ${emergencyNumber}.` };
       }
     } catch (error) {
       console.error(`Attempt ${attempts + 1} failed:`, error);
@@ -52,8 +52,8 @@ async function triggerEmergencyCall(incidentSummary: string) {
     }
   }
 
-  console.error(`Failed to initiate call to ${emergencyNumber} after ${maxAttempts} attempts.`);
-  return { success: false, message: `Failed to initiate call to ${emergencyNumber}.` };
+  console.error(`Failed to send SMS to ${emergencyNumber} after ${maxAttempts} attempts.`);
+  return { success: false, message: `Failed to send SMS to ${emergencyNumber}.` };
 }
 
 export async function handleSettingsUpdate(
@@ -114,7 +114,7 @@ export async function handleVideoUpload(
     const summaryResult = await summarizeAccidentDetails(summaryInput);
 
     // Trigger emergency alert
-    await triggerEmergencyCall(summaryResult.summary);
+    await triggerEmergencySms(summaryResult.summary);
 
     const newIncident: Incident = {
       id: `INC-${Date.now().toString().slice(-4)}`,
