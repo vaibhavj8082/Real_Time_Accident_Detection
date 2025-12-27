@@ -98,7 +98,6 @@ function formReducer(state: FormState, action: FormAction): FormState {
 export function VideoUploadForm() {
   const [state, dispatch] = useReducer(formReducer, initialFormState);
   const formRef = useRef<HTMLFormElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -190,7 +189,6 @@ export function VideoUploadForm() {
 
     if (result.incident) {
       window.dispatchEvent(new CustomEvent('new-incident', { detail: result.incident }));
-      audioRef.current?.play().catch(e => console.error("Audio playback failed", e));
       toast({
         title: 'Accident Detected!',
         description: result.success || 'An incident has been logged and an alert was sent.',
@@ -291,7 +289,7 @@ export function VideoUploadForm() {
                   <PartyPopper className="h-4 w-4" />
                   <AlertTitle className="font-semibold">Accident Detected!</AlertTitle>
                   <AlertDescription>
-                    {state.serverState.success || 'An incident has been logged and an alert sent.'}
+                    {state.serverState.success || 'An incident has been logged and an alert was sent.'}
                   </AlertDescription>
                 </Alert>
                 <div className="pt-4">
@@ -320,7 +318,6 @@ export function VideoUploadForm() {
           </div>
         )}
       </CardContent>
-      <audio ref={audioRef} src="/alarm.mp3" className="hidden" preload="auto" />
     </Card>
   );
 }
