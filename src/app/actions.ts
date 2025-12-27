@@ -6,7 +6,7 @@ import {
 } from '@/ai/flows/accident-threshold-configuration';
 import { summarizeAccidentDetails } from '@/ai/flows/summarize-accident-details';
 import type { Incident } from './lib/types';
-import twilio from 'twilio';
+import nodemailer from 'nodemailer';
 
 const settingsSchema = z.object({
   accidentConfidenceThreshold: z.coerce.number().min(0).max(1),
@@ -14,34 +14,46 @@ const settingsSchema = z.object({
 });
 
 /**
- * Sends an emergency SMS to a predefined number using Twilio.
- * It reads credentials from environment variables.
+ * Sends an emergency email using Nodemailer.
+ * It reads SMTP credentials from environment variables.
  */
-async function triggerEmergencySms(incidentSummary: string) {
-  const toPhoneNumber = '9307187326';
-  const fromPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
+async function triggerEmergencyEmail(incidentSummary: string) {
+  const toEmail = 'vaibhavj7326@gmail.com';
+  const fromEmail = process.env.EMAIL_FROM;
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
 
-  if (!fromPhoneNumber || !accountSid || !authToken) {
-    const errorMessage = 'Twilio credentials are not configured in environment variables.';
+  if (!fromEmail || !smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+    const errorMessage = 'Email credentials (SMTP) are not configured in environment variables.';
     console.error(errorMessage);
     return { success: false, message: errorMessage };
   }
 
-  const client = twilio(accountSid, authToken);
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: Number(smtpPort),
+    secure: Number(smtpPort) === 465, // true for 465, false for other ports
+    auth: {
+      user: smtpUser,
+      pass: smtpPass,
+    },
+  });
 
   try {
-    const message = await client.messages.create({
-      body: incidentSummary,
-      from: fromPhoneNumber,
-      to: `+${toPhoneNumber}`, // Assuming the number is in a format that needs a country code prefix
+    const info = await transporter.sendMail({
+      from: `"AlertWatch" <${fromEmail}>`,
+      to: toEmail,
+      subject: 'Accident Detected!',
+      text: incidentSummary,
+      html: `<p>${incidentSummary}</p>`,
     });
-    console.log(`Successfully sent SMS. Message SID: ${message.sid}`);
-    return { success: true, message: `Emergency alert sent to ${toPhoneNumber}.` };
+    console.log(`Successfully sent email. Message ID: ${info.messageId}`);
+    return { success: true, message: `Emergency alert sent to ${toEmail}.` };
   } catch (error) {
-    console.error('Failed to send SMS:', error);
-    return { success: false, message: 'Failed to send emergency SMS via Twilio.' };
+    console.error('Failed to send email:', error);
+    return { success: false, message: 'Failed to send emergency email.' };
   }
 }
 
@@ -69,18 +81,15 @@ export async function handleVideoUpload(
   previousState: { error?: string; incident?: Incident; success?: string; isError?: boolean },
   formData: FormData
 ): Promise<{ error?: string; incident?: Incident; success?: string; isError?: boolean }> {
+  const videoFile = formData.get('video');
+  
   // This is used to reset the state from the client
-  if (!formData.has('video')) {
+  if (!videoFile || !(videoFile instanceof File) || videoFile.size === 0) {
     return {};
   }
 
-  const videoFile = formData.get('video');
   const thumbnail = formData.get('thumbnail') as string;
 
-  if (!videoFile || !(videoFile instanceof File) || videoFile.size === 0) {
-    return { error: 'A video file is required.', isError: true };
-  }
-  
   if (!thumbnail) {
     return { error: 'Could not generate video thumbnail. Please try again with a different video.', isError: true };
   }
@@ -108,7 +117,7 @@ export async function handleVideoUpload(
     const incidentSummary = `Accident Alert! Detected at ${accidentTime.toLocaleTimeString()}. Location: Uploaded Video. Accuracy: ${Math.round(summaryResult.accuracy * 100)}%.`;
 
     // Trigger emergency alert
-    const smsResult = await triggerEmergencySms(incidentSummary);
+    const emailResult = await triggerEmergencyEmail(incidentSummary);
 
     const newIncident: Incident = {
       id: `INC-${Date.now().toString().slice(-4)}`,
@@ -122,11 +131,11 @@ export async function handleVideoUpload(
       accuracy: summaryResult.accuracy,
     };
 
-    if (smsResult.success) {
-      return { incident: newIncident, success: smsResult.message };
+    if (emailResult.success) {
+      return { incident: newIncident, success: emailResult.message };
     } else {
-      // SMS failed but we still show the incident and the error
-      return { incident: newIncident, error: smsResult.message, isError: true };
+      // Email failed but we still show the incident and the error
+      return { incident: newIncident, error: emailResult.message, isError: true };
     }
 
   } catch (error) {
