@@ -2,11 +2,9 @@
 
 import {
   useState,
-  useActionState,
+  useReducer,
   useRef,
   useEffect,
-  startTransition,
-  useReducer,
 } from 'react';
 import { handleVideoUpload } from '@/app/actions';
 import {
@@ -17,6 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   Upload,
@@ -26,12 +25,13 @@ import {
   Info,
   Film,
   RefreshCw,
+  Video,
 } from 'lucide-react';
 import { IncidentCard } from './incident-card';
 import type { Incident } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Label } from '../ui/label';
+import { cn } from '@/lib/utils';
 
 // --- State Management ---
 
@@ -85,6 +85,8 @@ function formReducer(state: FormState, action: FormAction): FormState {
     case 'SUBMIT_SUCCESS':
       return { ...state, isPending: false, serverState: action.payload };
     case 'RESET':
+      // Revoke old object URLs to prevent memory leaks
+      if (state.videoPreview) URL.revokeObjectURL(state.videoPreview);
       return initialFormState;
     default:
       return state;
@@ -99,12 +101,24 @@ export function VideoUploadForm() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Cleanup object URLs on component unmount
+    return () => {
+      if (state.videoPreview) {
+        URL.revokeObjectURL(state.videoPreview);
+      }
+    };
+  }, [state.videoPreview]);
+
   const generateVideoThumbnail = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(file);
       video.muted = true;
-      video.onloadeddata = () => video.currentTime = 1;
+      video.onloadeddata = () => {
+        // Seek to 1 second or half the duration for short videos
+        video.currentTime = Math.min(1, video.duration / 2);
+      };
       video.onseeked = () => {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
@@ -112,15 +126,13 @@ export function VideoUploadForm() {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(video.src);
           resolve(canvas.toDataURL('image/jpeg'));
         } else {
           reject(new Error('Canvas context not available.'));
         }
       };
-      video.onerror = () => {
-        URL.revokeObjectURL(video.src);
-        reject(new Error('Failed to load video for thumbnail.'));
+      video.onerror = (e) => {
+        reject(new Error(`Failed to load video for thumbnail: ${e}`));
       };
     });
   };
@@ -128,23 +140,40 @@ export function VideoUploadForm() {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      dispatch({ type: 'SET_FILE', payload: { file, previewUrl } });
-      dispatch({ type: 'GENERATING_THUMBNAIL' });
-      try {
-        const thumb = await generateVideoThumbnail(file);
-        dispatch({ type: 'SET_THUMBNAIL', payload: thumb });
-      } catch (error) {
-        console.error('Thumbnail generation failed:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Preview Failed',
-          description: 'Could not generate a video preview. Please try a different video.',
-        });
-        dispatch({ type: 'THUMBNAIL_ERROR' });
-      }
+      handleFile(file);
     }
   };
+  
+  const handleFile = async (file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    dispatch({ type: 'SET_FILE', payload: { file, previewUrl } });
+    dispatch({ type: 'GENERATING_THUMBNAIL' });
+    try {
+      const thumb = await generateVideoThumbnail(file);
+      dispatch({ type: 'SET_THUMBNAIL', payload: thumb });
+    } catch (error) {
+      console.error('Thumbnail generation failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Preview Failed',
+        description: 'Could not generate a video preview. Please try a different video.',
+      });
+      dispatch({ type: 'THUMBNAIL_ERROR' });
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('video/')) {
+       handleFile(file);
+    }
+  };
+
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -196,34 +225,52 @@ export function VideoUploadForm() {
       <CardHeader>
         <CardTitle>Upload Video File</CardTitle>
         <CardDescription>
-          Select a video file from your device for accident analysis.
+          Select or drag and drop a video file for accident analysis.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {!showResults ? (
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="video-upload">Video File</Label>
-              <Input
-                id="video-upload"
-                name="video"
-                type="file"
-                accept="video/mp4,video/avi,video/mov,video/webm"
-                onChange={handleFileChange}
-                disabled={state.isPending}
-                className="file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-primary-foreground hover:file:bg-primary/90"
-              />
-            </div>
+            
             {state.videoPreview ? (
-              <div className="rounded-lg overflow-hidden border-2 border-dashed">
-                <video src={state.videoPreview} controls muted className="w-full aspect-video" />
+              <div className="space-y-4">
+                <div className="rounded-lg overflow-hidden border-2 border-dashed">
+                  <video src={state.videoPreview} controls muted className="w-full aspect-video" />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="video-upload" className="text-sm font-medium">Change Video</Label>
+                    <Input
+                      id="video-upload"
+                      name="video"
+                      type="file"
+                      accept="video/mp4,video/avi,video/mov,video/webm"
+                      onChange={handleFileChange}
+                      disabled={state.isPending || state.isGeneratingThumbnail}
+                      className="file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-primary-foreground hover:file:bg-primary/90"
+                    />
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
-                <Film className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Your video preview will appear here.
-                </p>
+             <div 
+                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center transition-colors hover:border-primary/50"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+             >
+                <Video className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-semibold">Drop video here</h3>
+                <p className="mt-1 text-sm text-muted-foreground">or</p>
+                <Label htmlFor="video-upload" className={cn(buttonVariants({variant: "outline", className: "mt-4 cursor-pointer"}))}>
+                    Select File
+                </Label>
+                <Input
+                  id="video-upload"
+                  name="video"
+                  type="file"
+                  accept="video/mp4,video/avi,video/mov,video/webm"
+                  onChange={handleFileChange}
+                  disabled={state.isPending}
+                  className="sr-only"
+                />
               </div>
             )}
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitDisabled}>

@@ -28,13 +28,12 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <Sidebar
-        variant="sidebar"
         collapsible="icon"
         className="border-r border-sidebar-border bg-sidebar"
       >
         <SidebarHeader>
           <div className="flex items-center gap-2.5">
-            <AlertWatchLogo className="size-7 text-sidebar-primary-foreground group-data-[collapsible=icon]:size-6" />
+            <AlertWatchLogo className="size-7 text-sidebar-primary group-data-[collapsible=icon]:size-6" />
             <h1 className="text-lg font-semibold text-sidebar-primary-foreground group-data-[collapsible=icon]:hidden">
               AlertWatch
             </h1>
@@ -97,7 +96,7 @@ export default function DashboardLayout({
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="flex flex-col bg-background">
+      <SidebarInset className="flex flex-col">
         <DashboardHeader />
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </SidebarInset>
