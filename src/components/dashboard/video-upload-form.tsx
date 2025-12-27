@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useRef, useEffect, useTransition } from 'react';
+import { useState, useActionState, useRef, useEffect } from 'react';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -24,16 +24,10 @@ const initialState: {
   isError?: boolean;
 } = {};
 
-function SubmitButton({
-  isPending,
-  disabled,
-}: {
-  isPending: boolean;
-  disabled: boolean;
-}) {
+function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
-    <Button type="submit" className="w-full" disabled={isPending || disabled}>
-      {isPending ? (
+    <Button type="submit" className="w-full" disabled={isSubmitting}>
+      {isSubmitting ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Analyzing...
@@ -60,21 +54,51 @@ export function VideoUploadForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
-  const [isTransitionPending, startTransition] = useTransition();
 
-  const resetFormState = () => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    // Reset previous state when a new file is chosen
     setFile(null);
     setFilePreview(null);
     setThumbnail('');
-    if (formRef.current) {
-      formRef.current.reset();
+    formRef.current?.reset();
+    // This special action call resets the server state
+    formAction(new FormData(formRef.current!));
+
+
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setFilePreview(URL.createObjectURL(selectedFile));
+      setIsGeneratingThumbnail(true);
+      try {
+        const thumb = await generateVideoThumbnail(selectedFile);
+        setThumbnail(thumb);
+      } catch (error) {
+        console.error(error);
+        toast({
+          variant: 'destructive',
+          title: 'Thumbnail Generation Failed',
+          description:
+            (error as Error).message ||
+            'Could not generate a preview. Please try another video.',
+        });
+      } finally {
+        setIsGeneratingThumbnail(false);
+      }
     }
-    // By passing an empty form data, we trigger the action with no file,
-    // which resets the action's internal state.
-    startTransition(() => {
-      formAction(new FormData());
-    });
   };
+  
+  const resetForm = () => {
+    setFile(null);
+    setFilePreview(null);
+    setThumbnail('');
+    formRef.current?.reset();
+     // This special action call resets the server state
+    formAction(new FormData(formRef.current!));
+  };
+
 
   const generateVideoThumbnail = (videoFile: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -101,33 +125,6 @@ export function VideoUploadForm() {
         URL.revokeObjectURL(video.src);
       };
     });
-  };
-
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    resetFormState();
-    const selectedFile = event.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setFilePreview(URL.createObjectURL(selectedFile));
-      setIsGeneratingThumbnail(true);
-      try {
-        const thumb = await generateVideoThumbnail(selectedFile);
-        setThumbnail(thumb);
-      } catch (error) {
-        console.error(error);
-        toast({
-          variant: 'destructive',
-          title: 'Thumbnail Generation Failed',
-          description:
-            (error as Error).message ||
-            'Could not generate a preview. Please try another video.',
-        });
-      } finally {
-        setIsGeneratingThumbnail(false);
-      }
-    }
   };
 
   useEffect(() => {
@@ -157,6 +154,8 @@ export function VideoUploadForm() {
 
   const showResults =
     !isPending && (state.incident || state.success || state.error);
+  
+  const isSubmitting = isPending || isGeneratingThumbnail;
 
   return (
     <Card>
@@ -181,7 +180,7 @@ export function VideoUploadForm() {
               type="file"
               accept="video/mp4,video/avi,video/mov"
               onChange={handleFileChange}
-              disabled={isPending}
+              disabled={isSubmitting}
               required
             />
             <input type="hidden" name="thumbnail" value={thumbnail} />
@@ -194,8 +193,7 @@ export function VideoUploadForm() {
           )}
 
           <SubmitButton
-            isPending={isPending}
-            disabled={!file || isGeneratingThumbnail}
+            isSubmitting={isSubmitting || !file}
           />
         </form>
 
@@ -237,7 +235,7 @@ export function VideoUploadForm() {
             )}
             <Button
               variant="outline"
-              onClick={resetFormState}
+              onClick={resetForm}
               className="w-full"
             >
               Upload Another Video
@@ -250,3 +248,5 @@ export function VideoUploadForm() {
     </Card>
   );
 }
+
+    
