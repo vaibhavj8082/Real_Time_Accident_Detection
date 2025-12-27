@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState } from 'react';
+import { useState, useActionState, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { handleVideoUpload } from '@/app/actions';
 import {
@@ -42,13 +42,42 @@ export function VideoUploadForm() {
   const [state, formAction] = useActionState(handleVideoUpload, initialState);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
+  const thumbnailRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const generateVideoThumbnail = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.onloadeddata = () => {
+        video.currentTime = 1; // Capture frame at 1 second
+      };
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg'));
+        } else {
+          resolve('');
+        }
+        URL.revokeObjectURL(video.src);
+      };
+    });
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setFileName(file.name);
       if (file.type.startsWith('video/')) {
-        setFilePreview(URL.createObjectURL(file));
+        const previewUrl = URL.createObjectURL(file);
+        setFilePreview(previewUrl);
+        const thumbnailDataUrl = await generateVideoThumbnail(file);
+        if (thumbnailRef.current) {
+          thumbnailRef.current.value = thumbnailDataUrl;
+        }
       } else {
         setFilePreview(null);
       }
@@ -89,6 +118,12 @@ export function VideoUploadForm() {
               </p>
             )}
           </div>
+          {filePreview && (
+            <div>
+              <video src={filePreview} controls className="w-full rounded-md" />
+            </div>
+          )}
+          <input type="hidden" name="thumbnail" ref={thumbnailRef} />
           <SubmitButton />
         </form>
 

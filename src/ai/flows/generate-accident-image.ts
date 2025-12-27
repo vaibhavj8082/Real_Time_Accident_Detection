@@ -2,6 +2,9 @@
 /**
  * @fileOverview Generates an image based on an accident summary.
  *
+ * This flow is not currently used but is kept for demonstration purposes.
+ * The video upload now generates a thumbnail from the video itself.
+ *
  * - generateAccidentImage - A function that generates an image for a given summary.
  * - GenerateAccidentImageInput - The input type for the generateAccidentImage function.
  * - GenerateAccidentImageOutput - The return type for the generateAccidentImage function.
@@ -14,7 +17,7 @@ const GenerateAccidentImageInputSchema = z.object({
   summary: z.string().describe('A summary of the accident.'),
 });
 export type GenerateAccidentImageInput = z.infer<
-  typeof GenerateAccidentImageInputSchema
+  typeof GenerateAccide-ntImageInputSchema
 >;
 
 const GenerateAccidentImageOutputSchema = z.object({

@@ -3,10 +3,8 @@
 import { z } from 'zod';
 import {
   configureAccidentThreshold,
-  type ConfigureAccidentThresholdInput,
 } from '@/ai/flows/accident-threshold-configuration';
 import { summarizeAccidentDetails } from '@/ai/flows/summarize-accident-details';
-import { generateAccidentImage } from '@/ai/flows/generate-accident-image';
 import type { Incident } from './lib/types';
 
 const settingsSchema = z.object({
@@ -83,10 +81,16 @@ export async function handleVideoUpload(
   formData: FormData
 ): Promise<{ error?: string; incident?: Incident }> {
   const videoFile = formData.get('video');
+  const thumbnail = formData.get('thumbnail') as string;
 
   if (!videoFile || !(videoFile instanceof File) || videoFile.size === 0) {
     return { error: 'A video file is required.' };
   }
+  
+  if (!thumbnail) {
+    return { error: 'Could not generate video thumbnail.' };
+  }
+
 
   // Simulate video processing and AI analysis
   await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -109,9 +113,6 @@ export async function handleVideoUpload(
 
     const summaryResult = await summarizeAccidentDetails(summaryInput);
 
-    // Generate an image of the accident
-    const imageResult = await generateAccidentImage({ summary: summaryResult.summary });
-
     // Trigger emergency alert
     await triggerEmergencyCall(summaryResult.summary);
 
@@ -124,8 +125,8 @@ export async function handleVideoUpload(
       accuracy: summaryResult.accuracy,
       severity: summaryResult.severity,
       thumbnail: {
-        url: imageResult.imageUrl,
-        hint: 'security camera',
+        url: thumbnail,
+        hint: 'video snapshot',
       },
     };
 
