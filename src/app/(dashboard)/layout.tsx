@@ -12,12 +12,7 @@ import {
   SidebarFooter,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import {
-  Home,
-  Settings,
-  Upload,
-  Video,
-} from 'lucide-react';
+import { Home, Settings, Upload, Video } from 'lucide-react';
 import { AlertWatchLogo } from '@/components/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -35,7 +30,7 @@ export default function DashboardLayout({
       <Sidebar
         variant="sidebar"
         collapsible="icon"
-        className="border-r border-sidebar-border"
+        className="border-r border-sidebar-border bg-sidebar"
       >
         <SidebarHeader>
           <div className="flex items-center gap-2.5">

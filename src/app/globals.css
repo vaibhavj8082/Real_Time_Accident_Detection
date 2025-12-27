@@ -4,62 +4,62 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 224 71% 4%;
-    --card: 220 20% 100%;
-    --card-foreground: 224 71% 4%;
-    --popover: 220 20% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 220 90% 55%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 15% 90%;
+    --background: 222 84% 98%;
+    --foreground: 222 84% 4%;
+    --card: 222 84% 100%;
+    --card-foreground: 222 84% 4%;
+    --popover: 222 84% 100%;
+    --popover-foreground: 222 84% 4%;
+    --primary: 222 84% 45%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 220 15% 90%;
-    --muted-foreground: 220 9% 40%;
-    --accent: 220 90% 55%;
-    --accent-foreground: 210 20% 98%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 89%;
-    --input: 220 13% 89%;
-    --ring: 220 90% 55%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 84% 45%;
     --radius: 0.75rem;
 
-    --chart-1: 220 85% 60%;
+    --chart-1: 222 84% 45%;
     --chart-2: 160 80% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 85% 65%;
     --chart-5: 340 85% 60%;
-
-    --sidebar-background: 224 71% 10%;
-    --sidebar-foreground: 210 20% 94%;
-    --sidebar-primary: 210 20% 98%;
-    --sidebar-primary-foreground: 224 71% 10%;
-    --sidebar-accent: 220 90% 55%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 224 71% 15%;
-    --sidebar-ring: 220 90% 65%;
+    
+    --sidebar-background: 222 84% 6%;
+    --sidebar-foreground: 210 40% 94%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222 84% 6%;
+    --sidebar-accent: 222 84% 45%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 84% 12%;
+    --sidebar-ring: 222 84% 55%;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 20% 98%;
-    --card: 224 71% 10%;
-    --card-foreground: 210 20% 98%;
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 20% 98%;
+    --background: 222 84% 4%;
+    --foreground: 210 40% 98%;
+    --card: 222 84% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 84% 4%;
+    --popover-foreground: 210 40% 98%;
     --primary: 210 90% 55%;
-    --primary-foreground: 224 71% 4%;
-    --secondary: 215 28% 17%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 28% 17%;
+    --primary-foreground: 222 84% 6%;
+    --secondary: 217 28% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 28% 17%;
     --muted-foreground: 215 20% 65%;
-    --accent: 210 90% 55%;
-    --accent-foreground: 224 71% 4%;
+    --accent: 217 28% 17%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 28% 17%;
+    --input: 217 28% 17%;
     --ring: 210 90% 55%;
 
     --chart-1: 210 85% 60%;
@@ -67,14 +67,14 @@
     --chart-3: 20 80% 55%;
     --chart-4: 270 85% 65%;
     --chart-5: 330 85% 60%;
-    
-    --sidebar-background: 224 71% 4%;
-    --sidebar-foreground: 210 20% 94%;
-    --sidebar-primary: 210 20% 98%;
-    --sidebar-primary-foreground: 224 71% 4%;
+
+    --sidebar-background: 222 84% 4%;
+    --sidebar-foreground: 210 40% 94%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222 84% 6%;
     --sidebar-accent: 210 90% 55%;
-    --sidebar-accent-foreground: 224 71% 4%;
-    --sidebar-border: 224 71% 10%;
+    --sidebar-accent-foreground: 222 84% 6%;
+    --sidebar-border: 222 84% 10%;
     --sidebar-ring: 210 90% 65%;
   }
 }
@@ -90,6 +90,16 @@
 }
 
 @layer utilities {
+  @keyframes new-item-in {
+    from {
+      opacity: 0;
+      transform: translateY(1rem) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
   .animate-new-item-in {
     animation: new-item-in 0.5s ease-out forwards;
   }

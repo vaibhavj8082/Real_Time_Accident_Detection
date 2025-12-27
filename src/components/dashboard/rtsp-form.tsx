@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Video, MapPin } from 'lucide-react';
+import { Video } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 export function RtspForm() {

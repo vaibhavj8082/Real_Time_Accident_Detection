@@ -18,15 +18,15 @@ const settingsSchema = z.object({
  * It reads SMTP credentials from environment variables.
  */
 async function triggerEmergencyEmail(incidentSummary: string) {
-  const toEmail = 'vaibhavj7326@gmail.com';
+  const toEmail = process.env.EMAIL_TO || 'vaibhavj7326@gmail.com';
   const fromEmail = process.env.EMAIL_FROM;
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = process.env.SMTP_PORT;
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
 
-  if (!fromEmail || !smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-    const errorMessage = 'Email credentials (EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) are not configured in .env file.';
+  if (!toEmail || !fromEmail || !smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+    const errorMessage = 'Email credentials (EMAIL_TO, EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) are not fully configured in .env file.';
     console.error(errorMessage);
     return { success: false, message: errorMessage };
   }

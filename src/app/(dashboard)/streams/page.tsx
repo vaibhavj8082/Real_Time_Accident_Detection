@@ -1,6 +1,5 @@
 import { RtspForm } from '@/components/dashboard/rtsp-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { AlertTriangle, Video, MapPin } from 'lucide-react';
 import Image from 'next/image';
 
@@ -26,7 +25,7 @@ export default function StreamsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <CardTitle className="text-lg">CAM-01</CardTitle>
-                    <CardDescription className="flex items-center gap-1.5 text-sm">
+                    <CardDescription className="flex items-center gap-1.5 pt-1 text-sm">
                       <MapPin className="h-3.5 w-3.5" />
                       Highway 99
                     </CardDescription>
@@ -60,12 +59,12 @@ export default function StreamsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <CardTitle className="text-lg">CAM-02</CardTitle>
-                    <CardDescription className="flex items-center gap-1.5 text-sm">
+                    <CardDescription className="flex items-center gap-1.5 pt-1 text-sm">
                       <MapPin className="h-3.5 w-3.5" />
                       Downtown Crossing
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2 text-sm font-medium text-green-600">
+                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-500">
                     <Video className="h-5 w-5" />
                     Monitoring
                   </div>
