@@ -1,4 +1,8 @@
+
+'use client';
+
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import type { Incident } from '@/lib/types';
 import {
   Card,
@@ -26,7 +30,14 @@ type IncidentCardProps = {
 };
 
 export function IncidentCard({ incident }: IncidentCardProps) {
+  const [formattedTime, setFormattedTime] = useState(incident.time);
   const accuracyValue = incident.accuracy * 100;
+
+  useEffect(() => {
+    // Format the time on the client side to avoid hydration mismatch
+    setFormattedTime(new Date(incident.time).toLocaleString());
+  }, [incident.time]);
+
 
   let accuracyColor = 'bg-emerald-500';
   if (accuracyValue < 90) accuracyColor = 'bg-yellow-500';
@@ -85,7 +96,7 @@ export function IncidentCard({ incident }: IncidentCardProps) {
         <CardFooter className="flex-col items-start gap-4">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>{incident.time}</span>
+            <span>{formattedTime}</span>
           </div>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm" className="w-full">
@@ -134,7 +145,7 @@ export function IncidentCard({ incident }: IncidentCardProps) {
               <span className="text-sm font-medium text-muted-foreground">
                 Time
               </span>
-              <span className="text-sm font-semibold">{incident.time}</span>
+              <span className="text-sm font-semibold">{formattedTime}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
