@@ -88,7 +88,7 @@ export async function handleVideoUpload(
   }
   
   if (!thumbnail) {
-    return { error: 'Could not generate video thumbnail.' };
+    return { error: 'Could not generate video thumbnail. Please try again.' };
   }
 
 

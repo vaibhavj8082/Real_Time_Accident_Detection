@@ -44,18 +44,16 @@ export function VideoUploadForm() {
     handleVideoUpload,
     initialState
   );
+  const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string>('');
-  const [isThumbnailReady, setIsThumbnailReady] = useState(false);
-  const thumbnailRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [thumbnail, setThumbnail] = useState<string>('');
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-
-  const generateVideoThumbnail = (file: File): Promise<string> => {
+  const generateVideoThumbnail = (videoFile: File): Promise<string> => {
     return new Promise((resolve) => {
       const video = document.createElement('video');
-      video.src = URL.createObjectURL(file);
+      video.src = URL.createObjectURL(videoFile);
       video.onloadeddata = () => {
         video.currentTime = 1; // Capture frame at 1 second
       };
@@ -82,47 +80,42 @@ export function VideoUploadForm() {
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    // Reset form and all local state
-    if (formRef.current) {
-      formRef.current.reset();
-    }
-    
-    // Explicitly reset the action state if possible or just handle UI state
-    // Note: useActionState doesn't have a programmatic reset, so we reset dependent UI state
-    setFilePreview(null);
-    setFileName('');
-    setIsThumbnailReady(false);
-    if (thumbnailRef.current) {
-      thumbnailRef.current.value = '';
-    }
+    const selectedFile = event.target.files?.[0];
 
-    const file = event.target.files?.[0];
-
-    if (file) {
-      setFileName(file.name);
-      if (file.type.startsWith('video/')) {
-        const previewUrl = URL.createObjectURL(file);
-        setFilePreview(previewUrl);
-        setIsThumbnailReady(false); // Set to false while generating
-        const thumbnailDataUrl = await generateVideoThumbnail(file);
-        if (thumbnailRef.current) {
-          thumbnailRef.current.value = thumbnailDataUrl;
-          if (thumbnailDataUrl) {
-            setIsThumbnailReady(true);
-          }
-        }
-      }
+    if (selectedFile) {
+      setFile(selectedFile);
+      setFilePreview(URL.createObjectURL(selectedFile));
+      setThumbnail(''); // Reset thumbnail while generating
+      const thumb = await generateVideoThumbnail(selectedFile);
+      setThumbnail(thumb);
+    } else {
+      setFile(null);
+      setFilePreview(null);
+      setThumbnail('');
     }
   };
   
   useEffect(() => {
+    // Reset file input and state when the analysis is complete
     if (!isPending && (state.error || state.incident)) {
         if(fileInputRef.current) {
             fileInputRef.current.value = '';
         }
+        setFile(null);
+        setFilePreview(null);
+        setThumbnail('');
     }
   }, [isPending, state]);
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    if(file) {
+      formData.set('video', file);
+    }
+    formData.set('thumbnail', thumbnail);
+    formAction(formData);
+  };
 
   return (
     <Card>
@@ -133,7 +126,7 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form ref={formRef} action={formAction} className="space-y-6">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label
               htmlFor="video-upload"
@@ -149,21 +142,14 @@ export function VideoUploadForm() {
               onChange={handleFileChange}
               disabled={isPending}
               ref={fileInputRef}
-              key={fileName} // Reset input on new file
             />
-            {fileName && !isPending && (
-              <p className="text-sm text-muted-foreground">
-                Selected: {fileName}
-              </p>
-            )}
           </div>
           {filePreview && (
             <div>
               <video src={filePreview} controls className="w-full rounded-md" />
             </div>
           )}
-          <input type="hidden" name="thumbnail" ref={thumbnailRef} />
-          <SubmitButton disabled={isPending || (!!fileName && !isThumbnailReady)} />
+          <SubmitButton disabled={isPending || !file || !thumbnail} />
         </form>
 
         {state?.error && !isPending && (
