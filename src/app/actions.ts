@@ -78,6 +78,7 @@ export async function handleSettingsUpdate(
 }
 
 export async function handleVideoUpload(
+  previousState: { error?: string; incident?: Incident },
   formData: FormData
 ): Promise<{ error?: string; incident?: Incident }> {
   const videoFile = formData.get('video');
