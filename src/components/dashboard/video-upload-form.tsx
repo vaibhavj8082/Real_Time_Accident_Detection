@@ -15,10 +15,16 @@ import { Upload, XCircle, Loader2 } from 'lucide-react';
 import { IncidentCard } from './incident-card';
 import type { Incident } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
-const initialState: { error?: string; incident?: Incident } = {
+const initialState: {
+  error?: string;
+  incident?: Incident;
+  success?: string;
+} = {
   error: undefined,
   incident: undefined,
+  success: undefined,
 };
 
 function SubmitButton({
@@ -56,6 +62,7 @@ export function VideoUploadForm() {
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const generateVideoThumbnail = (videoFile: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -84,17 +91,9 @@ export function VideoUploadForm() {
     });
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Reset previous state when a new file is selected
-    if (state.incident || state.error) {
-      if (formRef.current) {
-        formRef.current.reset();
-      }
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-    
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
@@ -112,18 +111,27 @@ export function VideoUploadForm() {
   };
 
   useEffect(() => {
-    if (!isPending && (state?.incident || state?.error)) {
-      if (formRef.current) {
-        formRef.current.reset();
+    if (!isPending) {
+      if (state.error) {
+        setFile(null);
+        setFilePreview(null);
+        setThumbnail('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
-      setFile(null);
-      setFilePreview(null);
-      setThumbnail('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      if (state.incident) {
+        if (state.success) {
+          toast({
+            title: 'Alert Sent',
+            description: state.success,
+          });
+        }
+        setFile(null);
+        setFilePreview(null);
+        setThumbnail('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     }
-  }, [isPending, state?.incident, state?.error]);
+  }, [isPending, state, toast]);
 
   return (
     <Card>
@@ -134,11 +142,7 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form
-          ref={formRef}
-          action={formAction}
-          className="space-y-6"
-        >
+        <form ref={formRef} action={formAction} className="space-y-6">
           <div className="space-y-2">
             <label
               htmlFor="video-upload"
@@ -173,7 +177,6 @@ export function VideoUploadForm() {
             <XCircle className="h-4 w-4" />
             <AlertTitle>Analysis Failed</AlertTitle>
             <AlertDescription>{state.error}</AlertDescription>
-
           </Alert>
         )}
 
@@ -187,7 +190,7 @@ export function VideoUploadForm() {
                 Analysis Complete
               </AlertTitle>
               <AlertDescription className="text-green-700 dark:text-green-400">
-                An accident was detected and an alert has been sent.
+                An accident was detected. See details below.
               </AlertDescription>
             </Alert>
             <h3 className="text-lg font-medium">Detected Incident:</h3>

@@ -38,7 +38,7 @@ async function triggerEmergencySms(incidentSummary: string) {
 
       if (success) {
         console.log(`Successfully sent SMS to ${emergencyNumber}.`);
-        return { success: true, message: `SMS sent to ${emergencyNumber}.` };
+        return { success: true, message: `SMS alert sent to ${emergencyNumber}.` };
       }
     } catch (error) {
       console.error(`Attempt ${attempts + 1} failed:`, error);
@@ -77,9 +77,9 @@ export async function handleSettingsUpdate(
 }
 
 export async function handleVideoUpload(
-  previousState: { error?: string; incident?: Incident },
+  previousState: { error?: string; incident?: Incident, success?: string; },
   formData: FormData
-): Promise<{ error?: string; incident?: Incident }> {
+): Promise<{ error?: string; incident?: Incident; success?: string; }> {
   const videoFile = formData.get('video');
   const thumbnail = formData.get('thumbnail') as string;
 
@@ -115,7 +115,7 @@ export async function handleVideoUpload(
     const incidentSummary = `An accident was detected in the video uploaded at ${accidentTime.toLocaleTimeString()}. Detection accuracy: ${Math.round(summaryResult.accuracy * 100)}%.`;
 
     // Trigger emergency alert
-    await triggerEmergencySms(incidentSummary);
+    const smsResult = await triggerEmergencySms(incidentSummary);
 
     const newIncident: Incident = {
       id: `INC-${Date.now().toString().slice(-4)}`,
@@ -129,7 +129,7 @@ export async function handleVideoUpload(
       accuracy: summaryResult.accuracy,
     };
 
-    return { incident: newIncident };
+    return { incident: newIncident, success: smsResult.message };
   } catch (error) {
     console.error('Error processing video upload:', error);
     return { error: 'An unexpected error occurred during analysis.' };
