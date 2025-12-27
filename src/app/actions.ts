@@ -112,7 +112,7 @@ export async function handleVideoUpload(
     };
 
     const summaryResult = await summarizeAccidentDetails(summaryInput);
-    const incidentSummary = `An accident was detected in the video uploaded at ${accidentTime.toLocaleTimeString()}. Detection accuracy: ${summaryResult.accuracy * 100}%.`
+    const incidentSummary = `An accident was detected in the video uploaded at ${accidentTime.toLocaleTimeString()}. Detection accuracy: ${Math.round(summaryResult.accuracy * 100)}%.`;
 
     // Trigger emergency alert
     await triggerEmergencySms(incidentSummary);
