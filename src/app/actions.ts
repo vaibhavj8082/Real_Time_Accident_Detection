@@ -6,7 +6,7 @@ import {
 } from '@/ai/flows/accident-threshold-configuration';
 import { summarizeAccidentDetails } from '@/ai/flows/summarize-accident-details';
 import type { Incident } from './lib/types';
-import nodemailer from 'nodemailer';
+import twilio from 'twilio';
 
 const settingsSchema = z.object({
   accidentConfidenceThreshold: z.coerce.number().min(0).max(1),
@@ -14,48 +14,44 @@ const settingsSchema = z.object({
 });
 
 /**
- * Sends an emergency email using Nodemailer.
- * It reads SMTP credentials from environment variables.
+ * Sends an emergency SMS using Twilio.
+ * It reads credentials from environment variables.
  */
-async function triggerEmergencyEmail(incidentSummary: string) {
-  const toEmail = process.env.EMAIL_TO || 'securitymail@gmail.com';
-  const fromEmail = process.env.EMAIL_FROM;
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
+async function triggerEmergencySms(incidentSummary: string) {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+  const toNumber = process.env.SMS_TO || '999999999';
 
-  if (!toEmail || !fromEmail || !smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-    const errorMessage = 'Email credentials (EMAIL_TO, EMAIL_FROM, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS) are not fully configured in .env file.';
+  if (!accountSid || !authToken || !fromNumber) {
+    const errorMessage = 'Twilio credentials (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER) are not fully configured in .env file.';
     console.error(errorMessage);
     return { success: false, message: errorMessage };
   }
 
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: Number(smtpPort),
-    secure: Number(smtpPort) === 465, // true for 465, false for other ports
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
+  const client = twilio(accountSid, authToken);
 
   try {
-    const info = await transporter.sendMail({
-      from: `"AlertWatch" <${fromEmail}>`,
-      to: toEmail,
-      subject: 'Accident Detected!',
-      text: incidentSummary,
-      html: `<p>${incidentSummary}</p>`,
+    const message = await client.messages.create({
+      body: incidentSummary,
+      from: fromNumber,
+      to: toNumber,
     });
-    console.log(`Successfully sent email. Message ID: ${info.messageId}`);
-    return { success: true, message: `Alert is sended to ${toEmail}` };
+    console.log(`Successfully sent SMS. Message SID: ${message.sid}`);
+    return { success: true, message: `Alert was sent to ${toNumber}` };
   } catch (error) {
-    console.error('Failed to send email:', error);
-    return { success: false, message: 'Failed to send emergency email.' };
+    console.error('Failed to send SMS:', error);
+    // Provide a more specific error if available
+    if (error instanceof Error) {
+       const twilioError = error as any;
+       if (twilioError.code === 21211) {
+         return { success: false, message: `Failed to send SMS. The 'To' number ${toNumber} is not a valid phone number.` };
+       }
+    }
+    return { success: false, message: 'Failed to send emergency SMS.' };
   }
 }
+
 
 export async function handleSettingsUpdate(
   values: z.infer<typeof settingsSchema>
@@ -117,7 +113,7 @@ export async function handleVideoUpload(
     const incidentSummary = `Accident Alert! Detected at ${accidentTime.toLocaleTimeString()}. Location: Uploaded Video. Accuracy: ${Math.round(summaryResult.accuracy * 100)}%.`;
 
     // Trigger emergency alert
-    const emailResult = await triggerEmergencyEmail(incidentSummary);
+    const smsResult = await triggerEmergencySms(incidentSummary);
 
     const newIncident: Incident = {
       id: `INC-${Date.now().toString().slice(-4)}`,
@@ -131,11 +127,11 @@ export async function handleVideoUpload(
       accuracy: summaryResult.accuracy,
     };
 
-    if (emailResult.success) {
-      return { incident: newIncident, success: emailResult.message };
+    if (smsResult.success) {
+      return { incident: newIncident, success: smsResult.message };
     } else {
-      // Email failed but we still show the incident and the error
-      return { incident: newIncident, error: emailResult.message, isError: true };
+      // SMS failed but we still show the incident and the error
+      return { incident: newIncident, error: smsResult.message, isError: true };
     }
 
   } catch (error) {
