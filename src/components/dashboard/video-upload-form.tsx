@@ -24,10 +24,10 @@ const initialState: {
   isError?: boolean;
 } = {};
 
-function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
+function SubmitButton({ disabled }: { disabled: boolean }) {
   return (
-    <Button type="submit" className="w-full" disabled={isSubmitting}>
-      {isSubmitting ? (
+    <Button type="submit" className="w-full" disabled={disabled}>
+      {disabled && !initialState ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Analyzing...
@@ -59,15 +59,7 @@ export function VideoUploadForm() {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     // Reset previous state when a new file is chosen
-    setFile(null);
-    setFilePreview(null);
-    setThumbnail('');
-    formRef.current?.reset();
-    // This special action call resets the server state
-    startTransition(() => {
-      formAction(new FormData(formRef.current!));
-    });
-
+    resetForm();
 
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
@@ -98,9 +90,11 @@ export function VideoUploadForm() {
     setThumbnail('');
     formRef.current?.reset();
      // This special action call resets the server state
-    startTransition(() => {
-      formAction(new FormData(formRef.current!));
-    });
+    if (state.incident || state.error || state.success) {
+      startTransition(() => {
+        formAction(new FormData());
+      });
+    }
   };
 
 
@@ -196,9 +190,19 @@ export function VideoUploadForm() {
             </div>
           )}
 
-          <SubmitButton
-            isSubmitting={isSubmitting || !file}
-          />
+          <Button type="submit" className="w-full" disabled={isSubmitting || !file || !thumbnail}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Analyze Video
+              </>
+            )}
+          </Button>
         </form>
 
         {showResults && (
