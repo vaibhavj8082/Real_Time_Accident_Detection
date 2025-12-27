@@ -24,7 +24,13 @@ const initialState: {
   isError?: boolean;
 } = {};
 
-function SubmitButton({ isPending, disabled }: { isPending: boolean; disabled: boolean; }) {
+function SubmitButton({
+  isPending,
+  disabled,
+}: {
+  isPending: boolean;
+  disabled: boolean;
+}) {
   return (
     <Button type="submit" className="w-full" disabled={isPending || disabled}>
       {isPending ? (
@@ -43,22 +49,27 @@ function SubmitButton({ isPending, disabled }: { isPending: boolean; disabled: b
 }
 
 export function VideoUploadForm() {
-  const [state, formAction, isPending] = useActionState(handleVideoUpload, initialState);
+  const [state, formAction, isPending] = useActionState(
+    handleVideoUpload,
+    initialState
+  );
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<string>('');
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
-  const resetForm = () => {
+  const resetFormState = () => {
     setFile(null);
     setFilePreview(null);
     setThumbnail('');
     if (formRef.current) {
       formRef.current.reset();
     }
-     // Reset the action state by dispatching an empty form data
+    // By passing an empty form data, we trigger the action with no file,
+    // which resets the action's internal state.
     formAction(new FormData());
   };
 
@@ -82,15 +93,17 @@ export function VideoUploadForm() {
         }
         URL.revokeObjectURL(video.src);
       };
-      video.onerror = () => {
+      video.onerror = (e) => {
         reject(new Error('Failed to load video for thumbnail generation.'));
         URL.revokeObjectURL(video.src);
       };
     });
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    resetForm();
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    resetFormState();
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
@@ -104,7 +117,9 @@ export function VideoUploadForm() {
         toast({
           variant: 'destructive',
           title: 'Thumbnail Generation Failed',
-          description: 'Could not generate a preview. Please try another video.',
+          description:
+            (error as Error).message ||
+            'Could not generate a preview. Please try another video.',
         });
       } finally {
         setIsGeneratingThumbnail(false);
@@ -117,11 +132,13 @@ export function VideoUploadForm() {
 
     if (state.success && state.incident) {
       toast({
-        title: 'Analysis Complete',
+        title: 'Accident Detected!',
         description: state.success,
       });
+      // Play sound on accident detection
+      audioRef.current?.play().catch(error => console.error("Audio playback failed:", error));
     } else if (state.success) {
-      // No incident, just a success message (e.g. no accident detected)
+      // No incident, just a success message
       toast({
         title: 'Analysis Complete',
         description: state.success,
@@ -135,7 +152,8 @@ export function VideoUploadForm() {
     }
   }, [state, isPending, toast]);
 
-  const showResults = !isPending && (state.incident || state.success || state.error);
+  const showResults =
+    !isPending && (state.incident || state.success || state.error);
 
   return (
     <Card>
@@ -146,11 +164,7 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form
-          ref={formRef}
-          action={formAction}
-          className="space-y-6"
-        >
+        <form ref={formRef} action={formAction} className="space-y-6">
           <div className="space-y-2">
             <label
               htmlFor="video-upload"
@@ -188,7 +202,7 @@ export function VideoUploadForm() {
               <>
                 <Alert
                   variant="default"
-                  className="bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-800"
+                  className="border-green-300 bg-green-100 dark:border-green-800 dark:bg-green-950"
                 >
                   <PartyPopper className="h-4 w-4 text-green-700 dark:text-green-300" />
                   <AlertTitle className="font-semibold text-green-800 dark:text-green-300">
@@ -198,17 +212,19 @@ export function VideoUploadForm() {
                     {state.success || 'An incident has been logged.'}
                   </AlertDescription>
                 </Alert>
-                <h3 className="text-lg font-medium">Detected Incident Details:</h3>
+                <h3 className="text-lg font-medium">
+                  Detected Incident Details:
+                </h3>
                 <IncidentCard incident={state.incident} />
               </>
             )}
-             {!state.incident && state.success && (
-               <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Analysis Report</AlertTitle>
-                  <AlertDescription>{state.success}</AlertDescription>
-                </Alert>
-             )}
+            {!state.incident && state.success && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Analysis Report</AlertTitle>
+                <AlertDescription>{state.success}</AlertDescription>
+              </Alert>
+            )}
             {state.isError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -216,12 +232,18 @@ export function VideoUploadForm() {
                 <AlertDescription>{state.error}</AlertDescription>
               </Alert>
             )}
-             <Button variant="outline" onClick={resetForm} className="w-full">
+            <Button
+              variant="outline"
+              onClick={resetFormState}
+              className="w-full"
+            >
               Upload Another Video
             </Button>
           </div>
         )}
       </CardContent>
+      {/* Audio element for the alarm sound */}
+      <audio ref={audioRef} src="https://www.w3schools.com/html/horse.ogg" className="hidden" />
     </Card>
   );
 }
