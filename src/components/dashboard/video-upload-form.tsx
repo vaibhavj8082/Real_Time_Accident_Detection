@@ -46,6 +46,7 @@ export function VideoUploadForm() {
   const [isThumbnailReady, setIsThumbnailReady] = useState(false);
   const thumbnailRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generateVideoThumbnail = (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -103,19 +104,20 @@ export function VideoUploadForm() {
   };
   
    useEffect(() => {
-    if (state.incident || state.error) {
-        if (formRef.current) {
-            // Do not reset the entire form, just the file input
-            const fileInput = formRef.current.querySelector<HTMLInputElement>('input[type="file"]');
-            if(fileInput) {
-                fileInput.value = '';
-            }
+    // This effect runs when the server action completes (isPending becomes false)
+    // and there is a result (incident or error).
+    if (!isPending && (state.incident || state.error)) {
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
         setFilePreview(null);
         setFileName('');
         setIsThumbnailReady(false);
+        if (thumbnailRef.current) {
+          thumbnailRef.current.value = '';
+        }
     }
-  }, [state]);
+  }, [isPending, state.incident, state.error]);
 
   return (
     <Card>
@@ -141,6 +143,7 @@ export function VideoUploadForm() {
               accept="video/mp4,video/avi,video/mov"
               onChange={handleFileChange}
               disabled={isPending}
+              ref={fileInputRef}
               required
             />
             {fileName && !isPending && (
@@ -158,7 +161,7 @@ export function VideoUploadForm() {
           <SubmitButton disabled={isPending || !isThumbnailReady} />
         </form>
 
-        {state?.error && (
+        {state?.error && !isPending && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertTitle>Analysis Failed</AlertTitle>
@@ -166,7 +169,7 @@ export function VideoUploadForm() {
           </Alert>
         )}
 
-        {state?.incident && (
+        {state?.incident && !isPending && (
           <div className="space-y-4">
             <Alert
               variant="default"
