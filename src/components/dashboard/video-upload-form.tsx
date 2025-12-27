@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Upload, XCircle, Loader2 } from 'lucide-react';
+import { Upload, Loader2, PartyPopper, AlertCircle } from 'lucide-react';
 import { IncidentCard } from './incident-card';
 import type { Incident } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -21,11 +21,8 @@ const initialState: {
   error?: string;
   incident?: Incident;
   success?: string;
-} = {
-  error: undefined,
-  incident: undefined,
-  success: undefined,
-};
+  isError?: boolean;
+} = {};
 
 function SubmitButton({
   isPending,
@@ -52,10 +49,7 @@ function SubmitButton({
 }
 
 export function VideoUploadForm() {
-  const [state, formAction, isPending] = useActionState(
-    handleVideoUpload,
-    initialState
-  );
+  const [state, formAction, isPending] = useActionState(handleVideoUpload, initialState);
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<string>('');
@@ -63,7 +57,7 @@ export function VideoUploadForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
-  const resetFormState = () => {
+  const resetForm = () => {
     setFile(null);
     setFilePreview(null);
     setThumbnail('');
@@ -73,7 +67,7 @@ export function VideoUploadForm() {
   };
 
   const generateVideoThumbnail = (videoFile: File): Promise<string> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(videoFile);
       video.onloadeddata = () => {
@@ -88,34 +82,46 @@ export function VideoUploadForm() {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL('image/jpeg'));
         } else {
-          resolve(''); // Resolve with empty string on context error
+          reject(new Error('Could not get canvas context.'));
         }
         URL.revokeObjectURL(video.src);
       };
       video.onerror = () => {
-        resolve(''); // Resolve with empty string on video error
+        reject(new Error('Failed to load video for thumbnail generation.'));
         URL.revokeObjectURL(video.src);
       };
     });
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Reset previous state when a new file is selected
+    if (state.incident || state.isError) {
+      formAction(new FormData()); // Clears the action state
+    }
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       setFilePreview(URL.createObjectURL(selectedFile));
       setThumbnail('');
       setIsGeneratingThumbnail(true);
-      const thumb = await generateVideoThumbnail(selectedFile);
-      setThumbnail(thumb);
-      setIsGeneratingThumbnail(false);
+      try {
+        const thumb = await generateVideoThumbnail(selectedFile);
+        setThumbnail(thumb);
+      } catch (error) {
+        console.error(error);
+        toast({
+          variant: 'destructive',
+          title: 'Thumbnail Generation Failed',
+          description: 'Could not generate a preview. Please try another video.',
+        });
+      } finally {
+        setIsGeneratingThumbnail(false);
+      }
     } else {
-      resetFormState();
+      resetForm();
     }
   };
-  
+
   useEffect(() => {
     if (isPending) return;
 
@@ -124,23 +130,18 @@ export function VideoUploadForm() {
         title: 'Alert Sent',
         description: state.success,
       });
-      resetFormState();
-    }
-
-    if (state.error) {
-       toast({
+      // Don't reset the form immediately, let user see the result
+    } else if (state.error) {
+      toast({
         variant: 'destructive',
         title: 'Analysis Failed',
         description: state.error,
       });
-      resetFormState();
-    }
-    
-    if (state.incident && !state.success) {
-      resetFormState();
+      // Don't reset, let user try again
     }
   }, [state, isPending, toast]);
 
+  const showResults = !isPending && (state.incident || state.isError);
 
   return (
     <Card>
@@ -170,40 +171,49 @@ export function VideoUploadForm() {
             />
             <input type="hidden" name="thumbnail" value={thumbnail} />
           </div>
-          {filePreview && (
+
+          {filePreview && !showResults && (
             <div>
               <video src={filePreview} controls className="w-full rounded-md" />
             </div>
           )}
+
           <SubmitButton
             isPending={isPending}
             disabled={!file || isGeneratingThumbnail}
           />
         </form>
 
-        {!isPending && state.error && (
-          <Alert variant="destructive">
-            <XCircle className="h-4 w-4" />
-            <AlertTitle>Analysis Failed</AlertTitle>
-            <AlertDescription>{state.error}</AlertDescription>
-          </Alert>
-        )}
-
-        {!isPending && state.incident && (
+        {showResults && (
           <div className="space-y-4 pt-4">
-             <Alert
-              variant="default"
-              className="bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-800"
-            >
-              <AlertTitle className="font-semibold text-green-800 dark:text-green-300">
-                Analysis Complete: Accident Detected!
-              </AlertTitle>
-              <AlertDescription className="text-green-700 dark:text-green-400">
-                The analysis is complete and an incident has been logged.
-              </AlertDescription>
-            </Alert>
-            <h3 className="text-lg font-medium">Detected Incident Details:</h3>
-            <IncidentCard incident={state.incident} />
+            {state.incident && (
+              <>
+                <Alert
+                  variant="default"
+                  className="bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-800"
+                >
+                  <PartyPopper className="h-4 w-4 text-green-700 dark:text-green-300" />
+                  <AlertTitle className="font-semibold text-green-800 dark:text-green-300">
+                    Analysis Complete: Accident Detected!
+                  </AlertTitle>
+                  <AlertDescription className="text-green-700 dark:text-green-400">
+                    The analysis is complete and an incident has been logged.
+                  </AlertDescription>
+                </Alert>
+                <h3 className="text-lg font-medium">Detected Incident Details:</h3>
+                <IncidentCard incident={state.incident} />
+              </>
+            )}
+            {state.isError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Analysis Report</AlertTitle>
+                <AlertDescription>{state.error}</AlertDescription>
+              </Alert>
+            )}
+             <Button variant="outline" onClick={resetForm} className="w-full">
+              Upload Another Video
+            </Button>
           </div>
         )}
       </CardContent>

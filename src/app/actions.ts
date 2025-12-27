@@ -38,7 +38,7 @@ async function triggerEmergencySms(incidentSummary: string) {
 
       if (success) {
         console.log(`Successfully sent SMS to ${emergencyNumber}.`);
-        return { success: true, message: `SMS alert sent to ${emergencyNumber}.` };
+        return { success: true, message: `Emergency alert sent to ${emergencyNumber}.` };
       }
     } catch (error) {
       console.error(`Attempt ${attempts + 1} failed:`, error);
@@ -62,7 +62,7 @@ export async function handleSettingsUpdate(
   const validatedFields = settingsSchema.safeParse(values);
 
   if (!validatedFields.success) {
-    return { error: 'Invalid fields!' };
+    return { error: 'Invalid fields!', isError: true };
   }
 
   try {
@@ -70,25 +70,31 @@ export async function handleSettingsUpdate(
     if (result.success) {
       return { success: result.message };
     }
-    return { error: 'Failed to update settings.' };
+    return { error: 'Failed to update settings.', isError: true };
   } catch (error) {
-    return { error: 'An unexpected error occurred.' };
+    return { error: 'An unexpected error occurred.', isError: true };
   }
 }
 
 export async function handleVideoUpload(
-  previousState: { error?: string; incident?: Incident, success?: string; },
+  previousState: { error?: string; incident?: Incident, success?: string; isError?: boolean },
   formData: FormData
-): Promise<{ error?: string; incident?: Incident; success?: string; }> {
+): Promise<{ error?: string; incident?: Incident; success?: string; isError?: boolean }> {
+
+  // This is used to reset the state from the client
+  if (!formData.has('video')) {
+    return {};
+  }
+
   const videoFile = formData.get('video');
   const thumbnail = formData.get('thumbnail') as string;
 
   if (!videoFile || !(videoFile instanceof File) || videoFile.size === 0) {
-    return { error: 'A video file is required.' };
+    return { error: 'A video file is required.', isError: true };
   }
   
   if (!thumbnail) {
-    return { error: 'Could not generate video thumbnail. Please try again with a different video.' };
+    return { error: 'Could not generate video thumbnail. Please try again with a different video.', isError: true };
   }
 
 
@@ -99,7 +105,7 @@ export async function handleVideoUpload(
   const isAccidentDetected = Math.random() > 0.05; // 95% chance of detection for demo
 
   if (!isAccidentDetected) {
-    return { error: 'No accident was detected in the uploaded video.' };
+    return { error: 'No accident was detected in the uploaded video.', isError: true };
   }
 
   try {
@@ -132,11 +138,12 @@ export async function handleVideoUpload(
     if (smsResult.success) {
       return { incident: newIncident, success: smsResult.message };
     } else {
-      return { incident: newIncident, error: smsResult.message };
+      // SMS failed but we still show the incident
+      return { incident: newIncident, error: smsResult.message, isError: true };
     }
 
   } catch (error) {
     console.error('Error processing video upload:', error);
-    return { error: 'An unexpected error occurred during analysis.' };
+    return { error: 'An unexpected error occurred during analysis.', isError: true };
   }
 }
