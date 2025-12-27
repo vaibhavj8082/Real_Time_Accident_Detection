@@ -91,7 +91,7 @@ export async function handleVideoUpload(
   await new Promise((resolve) => setTimeout(resolve, 3000));
 
   // Simulate accident detection
-  const isAccidentDetected = Math.random() > 0.3; // 70% chance of detection for demo
+  const isAccidentDetected = Math.random() > 0.1; // 90% chance of detection for demo
 
   if (!isAccidentDetected) {
     return { error: 'No accident was detected in the uploaded video.' };
