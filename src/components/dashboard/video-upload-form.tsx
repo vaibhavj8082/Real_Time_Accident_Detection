@@ -37,11 +37,15 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 }
 
 export function VideoUploadForm() {
-  const [state, formAction, isPending] = useActionState(handleVideoUpload, initialState);
+  const [state, formAction, isPending] = useActionState(
+    handleVideoUpload,
+    initialState
+  );
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
   const [isThumbnailReady, setIsThumbnailReady] = useState(false);
   const thumbnailRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const generateVideoThumbnail = (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -66,18 +70,20 @@ export function VideoUploadForm() {
       video.onerror = () => {
         resolve(''); // Resolve with empty string on error
         URL.revokeObjectURL(video.src);
-      }
+      };
     });
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     // Reset state on new file selection
     setFilePreview(null);
     setFileName('');
     setIsThumbnailReady(false);
     if (thumbnailRef.current) {
-        thumbnailRef.current.value = '';
+      thumbnailRef.current.value = '';
     }
 
     if (file) {
@@ -95,6 +101,21 @@ export function VideoUploadForm() {
       }
     }
   };
+  
+   useEffect(() => {
+    if (state.incident || state.error) {
+        if (formRef.current) {
+            // Do not reset the entire form, just the file input
+            const fileInput = formRef.current.querySelector<HTMLInputElement>('input[type="file"]');
+            if(fileInput) {
+                fileInput.value = '';
+            }
+        }
+        setFilePreview(null);
+        setFileName('');
+        setIsThumbnailReady(false);
+    }
+  }, [state]);
 
   return (
     <Card>
@@ -105,7 +126,7 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form action={formAction} className="space-y-6">
+        <form ref={formRef} action={formAction} className="space-y-6">
           <div className="space-y-2">
             <label
               htmlFor="video-upload"
@@ -119,9 +140,10 @@ export function VideoUploadForm() {
               type="file"
               accept="video/mp4,video/avi,video/mov"
               onChange={handleFileChange}
+              disabled={isPending}
               required
             />
-            {fileName && (
+            {fileName && !isPending && (
               <p className="text-sm text-muted-foreground">
                 Selected: {fileName}
               </p>
@@ -146,8 +168,13 @@ export function VideoUploadForm() {
 
         {state?.incident && (
           <div className="space-y-4">
-             <Alert variant="default" className="bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-800">
-              <AlertTitle className="font-semibold text-green-800 dark:text-green-300">Analysis Complete</AlertTitle>
+            <Alert
+              variant="default"
+              className="bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-800"
+            >
+              <AlertTitle className="font-semibold text-green-800 dark:text-green-300">
+                Analysis Complete
+              </AlertTitle>
               <AlertDescription className="text-green-700 dark:text-green-400">
                 An accident was detected and an alert has been sent.
               </AlertDescription>
