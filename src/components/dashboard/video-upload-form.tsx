@@ -16,7 +16,10 @@ import { IncidentCard } from './incident-card';
 import type { Incident } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
-const initialState: { error?: string; incident?: Incident } = {};
+const initialState: { error?: string; incident?: Incident } = {
+  error: undefined,
+  incident: undefined,
+};
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   return (
@@ -78,14 +81,18 @@ export function VideoUploadForm() {
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
-    // Reset state on new file selection
+    // Reset form and all local state
+    formRef.current?.reset();
+    initialState.error = undefined;
+    initialState.incident = undefined;
     setFilePreview(null);
     setFileName('');
     setIsThumbnailReady(false);
     if (thumbnailRef.current) {
       thumbnailRef.current.value = '';
     }
+
+    const file = event.target.files?.[0];
 
     if (file) {
       setFileName(file.name);
@@ -102,22 +109,6 @@ export function VideoUploadForm() {
       }
     }
   };
-  
-   useEffect(() => {
-    // This effect runs when the server action completes (isPending becomes false)
-    // and there is a result (incident or error).
-    if (!isPending && (state.incident || state.error)) {
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-        setFilePreview(null);
-        setFileName('');
-        setIsThumbnailReady(false);
-        if (thumbnailRef.current) {
-          thumbnailRef.current.value = '';
-        }
-    }
-  }, [isPending, state.incident, state.error]);
 
   return (
     <Card>
