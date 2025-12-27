@@ -18,7 +18,7 @@ const settingsSchema = z.object({
  * It reads SMTP credentials from environment variables.
  */
 async function triggerEmergencyEmail(incidentSummary: string) {
-  const toEmail = process.env.EMAIL_TO || 'vaibhavj7326@gmail.com';
+  const toEmail = process.env.EMAIL_TO || 'securitymail@gmail.com';
   const fromEmail = process.env.EMAIL_FROM;
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = process.env.SMTP_PORT;
@@ -50,7 +50,7 @@ async function triggerEmergencyEmail(incidentSummary: string) {
       html: `<p>${incidentSummary}</p>`,
     });
     console.log(`Successfully sent email. Message ID: ${info.messageId}`);
-    return { success: true, message: `Emergency alert sent to ${toEmail}.` };
+    return { success: true, message: `Alert is sended to ${toEmail}` };
   } catch (error) {
     console.error('Failed to send email:', error);
     return { success: false, message: 'Failed to send emergency email.' };
