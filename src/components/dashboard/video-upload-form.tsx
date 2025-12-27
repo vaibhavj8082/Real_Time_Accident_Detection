@@ -61,8 +61,16 @@ export function VideoUploadForm() {
   const [thumbnail, setThumbnail] = useState<string>('');
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const resetFormState = () => {
+    setFile(null);
+    setFilePreview(null);
+    setThumbnail('');
+    if (formRef.current) {
+      formRef.current.reset();
+    }
+  };
 
   const generateVideoThumbnail = (videoFile: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -104,18 +112,7 @@ export function VideoUploadForm() {
       setThumbnail(thumb);
       setIsGeneratingThumbnail(false);
     } else {
-      setFile(null);
-      setFilePreview(null);
-      setThumbnail('');
-    }
-  };
-
-  const resetFormState = () => {
-    setFile(null);
-    setFilePreview(null);
-    setThumbnail('');
-    if (formRef.current) {
-      formRef.current.reset();
+      resetFormState();
     }
   };
   
@@ -140,9 +137,8 @@ export function VideoUploadForm() {
     }
     
     if (state.incident && !state.success) {
-        resetFormState();
+      resetFormState();
     }
-
   }, [state, isPending, toast]);
 
 
@@ -170,7 +166,6 @@ export function VideoUploadForm() {
               accept="video/mp4,video/avi,video/mov"
               onChange={handleFileChange}
               disabled={isPending}
-              ref={fileInputRef}
               required
             />
             <input type="hidden" name="thumbnail" value={thumbnail} />
@@ -186,7 +181,7 @@ export function VideoUploadForm() {
           />
         </form>
 
-        {state.error && !isPending && (
+        {!isPending && state.error && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertTitle>Analysis Failed</AlertTitle>
@@ -194,7 +189,7 @@ export function VideoUploadForm() {
           </Alert>
         )}
 
-        {state.incident && !isPending && (
+        {!isPending && state.incident && (
           <div className="space-y-4 pt-4">
              <Alert
               variant="default"
