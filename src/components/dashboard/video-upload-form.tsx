@@ -21,9 +21,9 @@ const initialState: { error?: string; incident?: Incident } = {
   incident: undefined,
 };
 
-function SubmitButton({ isPending }: { isPending: boolean }) {
+function SubmitButton({ isPending, disabled }: { isPending: boolean, disabled: boolean }) {
   return (
-    <Button type="submit" className="w-full" disabled={isPending}>
+    <Button type="submit" className="w-full" disabled={isPending || disabled}>
       {isPending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -44,9 +44,9 @@ export function VideoUploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<string>('');
+  const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   const generateVideoThumbnail = (videoFile: File): Promise<string> => {
     return new Promise((resolve) => {
       const video = document.createElement('video');
@@ -75,17 +75,19 @@ export function VideoUploadForm() {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
     if (state.incident || state.error) {
-      formAction(new FormData());
+       formAction(new FormData()); // Reset action state
     }
-
+    
+    const selectedFile = event.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       setFilePreview(URL.createObjectURL(selectedFile));
       setThumbnail('');
+      setIsGeneratingThumbnail(true);
       const thumb = await generateVideoThumbnail(selectedFile);
       setThumbnail(thumb);
+      setIsGeneratingThumbnail(false);
     } else {
       setFile(null);
       setFilePreview(null);
@@ -94,7 +96,7 @@ export function VideoUploadForm() {
   };
 
   useEffect(() => {
-    if (!isPending && (state.incident || state.error)) {
+    if (!isPending && (state?.incident || state?.error)) {
       if (formRef.current) {
         formRef.current.reset();
       }
@@ -102,17 +104,18 @@ export function VideoUploadForm() {
       setFilePreview(null);
       setThumbnail('');
     }
-  }, [isPending, state.incident, state.error]);
+  }, [isPending, state?.incident, state?.error]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file || !thumbnail) return;
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData();
     formData.set('video', file);
     formData.set('thumbnail', thumbnail);
     formAction(formData);
   };
+
 
   return (
     <Card>
@@ -138,7 +141,6 @@ export function VideoUploadForm() {
               accept="video/mp4,video/avi,video/mov"
               onChange={handleFileChange}
               disabled={isPending}
-              ref={fileInputRef}
             />
           </div>
           {filePreview && (
@@ -146,7 +148,7 @@ export function VideoUploadForm() {
               <video src={filePreview} controls className="w-full rounded-md" />
             </div>
           )}
-          <SubmitButton isPending={isPending} />
+          <SubmitButton isPending={isPending} disabled={!file || isGeneratingThumbnail} />
         </form>
 
         {state?.error && !isPending && (
