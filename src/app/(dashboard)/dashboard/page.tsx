@@ -1,5 +1,6 @@
 import { mockIncidents } from '@/lib/data';
 import { IncidentCard } from '@/components/dashboard/incident-card';
+import { Incident } from '@/lib/types';
 
 export default function DashboardPage() {
   return (
@@ -12,7 +13,7 @@ export default function DashboardPage() {
       </div>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {mockIncidents.map((incident) => (
-          <IncidentCard key={incident.id} incident={incident} />
+          <IncidentCard key={incident.id} incident={incident as Incident} />
         ))}
       </div>
     </div>
