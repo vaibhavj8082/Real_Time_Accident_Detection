@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useRef, useEffect } from 'react';
+import { useState, useActionState, useRef, useEffect, useTransition } from 'react';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -60,6 +60,7 @@ export function VideoUploadForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
+  const [isTransitionPending, startTransition] = useTransition();
 
   const resetFormState = () => {
     setFile(null);
@@ -70,7 +71,9 @@ export function VideoUploadForm() {
     }
     // By passing an empty form data, we trigger the action with no file,
     // which resets the action's internal state.
-    formAction(new FormData());
+    startTransition(() => {
+      formAction(new FormData());
+    });
   };
 
   const generateVideoThumbnail = (videoFile: File): Promise<string> => {
@@ -243,7 +246,7 @@ export function VideoUploadForm() {
         )}
       </CardContent>
       {/* Audio element for the alarm sound */}
-      <audio ref={audioRef} src="https://www.w3schools.com/html/horse.ogg" className="hidden" />
+      <audio ref={audioRef} src="/alarm.mp3" className="hidden" />
     </Card>
   );
 }
