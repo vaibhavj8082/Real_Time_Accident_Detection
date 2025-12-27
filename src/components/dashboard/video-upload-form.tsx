@@ -69,7 +69,7 @@ export function VideoUploadForm() {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(videoFile);
       video.onloadeddata = () => {
-        video.currentTime = 1;
+        video.currentTime = 1; // Seek to 1 second to get a frame
       };
       video.onseeked = () => {
         const canvas = document.createElement('canvas');
@@ -80,12 +80,12 @@ export function VideoUploadForm() {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           resolve(canvas.toDataURL('image/jpeg'));
         } else {
-          resolve('');
+          resolve(''); // Resolve with empty string on context error
         }
         URL.revokeObjectURL(video.src);
       };
       video.onerror = () => {
-        resolve('');
+        resolve(''); // Resolve with empty string on video error
         URL.revokeObjectURL(video.src);
       };
     });
@@ -110,28 +110,41 @@ export function VideoUploadForm() {
     }
   };
 
-  useEffect(() => {
-    if (!isPending) {
-      if (state.error) {
-        setFile(null);
-        setFilePreview(null);
-        setThumbnail('');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-      if (state.incident) {
-        if (state.success) {
-          toast({
-            title: 'Alert Sent',
-            description: state.success,
-          });
-        }
-        setFile(null);
-        setFilePreview(null);
-        setThumbnail('');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
+  const resetFormState = () => {
+    setFile(null);
+    setFilePreview(null);
+    setThumbnail('');
+    if (formRef.current) {
+      formRef.current.reset();
     }
-  }, [isPending, state, toast]);
+  };
+  
+  useEffect(() => {
+    if (isPending) return;
+
+    if (state.success) {
+      toast({
+        title: 'Alert Sent',
+        description: state.success,
+      });
+      resetFormState();
+    }
+
+    if (state.error) {
+       toast({
+        variant: 'destructive',
+        title: 'Analysis Failed',
+        description: state.error,
+      });
+      resetFormState();
+    }
+    
+    if (state.incident && !state.success) {
+        resetFormState();
+    }
+
+  }, [state, isPending, toast]);
+
 
   return (
     <Card>
@@ -158,6 +171,7 @@ export function VideoUploadForm() {
               onChange={handleFileChange}
               disabled={isPending}
               ref={fileInputRef}
+              required
             />
             <input type="hidden" name="thumbnail" value={thumbnail} />
           </div>
@@ -172,7 +186,7 @@ export function VideoUploadForm() {
           />
         </form>
 
-        {state?.error && !isPending && (
+        {state.error && !isPending && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertTitle>Analysis Failed</AlertTitle>
@@ -180,20 +194,20 @@ export function VideoUploadForm() {
           </Alert>
         )}
 
-        {state?.incident && !isPending && (
-          <div className="space-y-4">
-            <Alert
+        {state.incident && !isPending && (
+          <div className="space-y-4 pt-4">
+             <Alert
               variant="default"
               className="bg-green-100 border-green-300 dark:bg-green-950 dark:border-green-800"
             >
               <AlertTitle className="font-semibold text-green-800 dark:text-green-300">
-                Analysis Complete
+                Analysis Complete: Accident Detected!
               </AlertTitle>
               <AlertDescription className="text-green-700 dark:text-green-400">
-                An accident was detected. See details below.
+                The analysis is complete and an incident has been logged.
               </AlertDescription>
             </Alert>
-            <h3 className="text-lg font-medium">Detected Incident:</h3>
+            <h3 className="text-lg font-medium">Detected Incident Details:</h3>
             <IncidentCard incident={state.incident} />
           </div>
         )}

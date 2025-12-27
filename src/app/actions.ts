@@ -88,7 +88,7 @@ export async function handleVideoUpload(
   }
   
   if (!thumbnail) {
-    return { error: 'Could not generate video thumbnail. Please try again.' };
+    return { error: 'Could not generate video thumbnail. Please try again with a different video.' };
   }
 
 
@@ -129,7 +129,12 @@ export async function handleVideoUpload(
       accuracy: summaryResult.accuracy,
     };
 
-    return { incident: newIncident, success: smsResult.message };
+    if (smsResult.success) {
+      return { incident: newIncident, success: smsResult.message };
+    } else {
+      return { incident: newIncident, error: smsResult.message };
+    }
+
   } catch (error) {
     console.error('Error processing video upload:', error);
     return { error: 'An unexpected error occurred during analysis.' };
