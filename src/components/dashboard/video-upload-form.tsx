@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useRef, useEffect } from 'react';
+import { useState, useActionState, useRef, useEffect, startTransition } from 'react';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -64,7 +64,9 @@ export function VideoUploadForm() {
     setThumbnail('');
     formRef.current?.reset();
     // This special action call resets the server state
-    formAction(new FormData(formRef.current!));
+    startTransition(() => {
+      formAction(new FormData(formRef.current!));
+    });
 
 
     const selectedFile = event.target.files?.[0];
@@ -96,7 +98,9 @@ export function VideoUploadForm() {
     setThumbnail('');
     formRef.current?.reset();
      // This special action call resets the server state
-    formAction(new FormData(formRef.current!));
+    startTransition(() => {
+      formAction(new FormData(formRef.current!));
+    });
   };
 
 
@@ -248,5 +252,3 @@ export function VideoUploadForm() {
     </Card>
   );
 }
-
-    
