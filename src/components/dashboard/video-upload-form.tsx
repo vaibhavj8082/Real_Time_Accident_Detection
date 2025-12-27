@@ -81,6 +81,10 @@ export function VideoUploadForm() {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const selectedFile = event.target.files?.[0];
+    // Reset previous results
+    if (state.incident || state.error) {
+       formAction(new FormData());
+    }
 
     if (selectedFile) {
       setFile(selectedFile);
@@ -96,16 +100,16 @@ export function VideoUploadForm() {
   };
   
   useEffect(() => {
-    // Reset file input and state when the analysis is complete
-    if (!isPending && (state.error || state.incident)) {
-        if(fileInputRef.current) {
-            fileInputRef.current.value = '';
+    // Reset file input when the form is submitted successfully and is no longer pending
+    if (!isPending && (state.incident || state.error)) {
+        if(formRef.current) {
+            formRef.current.reset();
         }
         setFile(null);
         setFilePreview(null);
         setThumbnail('');
     }
-  }, [isPending, state]);
+  }, [isPending, state.incident, state.error]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -126,7 +130,7 @@ export function VideoUploadForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formRef} action={formAction} onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label
               htmlFor="video-upload"
@@ -171,7 +175,7 @@ export function VideoUploadForm() {
               </AlertTitle>
               <AlertDescription className="text-green-700 dark:text-green-400">
                 An accident was detected and an alert has been sent.
-              </AlertDescription>
+              </Description>
             </Alert>
             <h3 className="text-lg font-medium">Detected Incident:</h3>
             <IncidentCard incident={state.incident} />

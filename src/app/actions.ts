@@ -122,11 +122,11 @@ export async function handleVideoUpload(
       location: 'Uploaded Video',
       time: accidentTime.toLocaleString(),
       status: 'New',
-      accuracy: summaryResult.accuracy,
       thumbnail: {
         url: thumbnail,
         hint: 'video snapshot',
       },
+      accuracy: summaryResult.accuracy,
     };
 
     return { incident: newIncident };
