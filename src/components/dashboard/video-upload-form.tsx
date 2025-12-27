@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { handleVideoUpload } from '@/app/actions';
 import {
   Card,
@@ -39,7 +39,7 @@ function SubmitButton() {
 }
 
 export function VideoUploadForm() {
-  const [state, formAction] = useFormState(handleVideoUpload, initialState);
+  const [state, formAction] = useActionState(handleVideoUpload, initialState);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>('');
 
